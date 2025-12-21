@@ -14,6 +14,7 @@ Minecraft Wiki API 是一个功能完善的 RESTful API 服务，专门用于抓
 - 🔍 **智能搜索**: 支持关键词搜索，相关度排序，分页浏览
 - 📄 **页面解析**: 完整的页面内容解析，提取标题、正文、图片、表格等
 - 🔄 **格式转换**: 支持 HTML 到 Markdown 的高质量转换
+- 📝 **源代码获取**: 支持获取页面的原始 Wikitext 源代码
 - 📦 **批量处理**: 支持批量获取多个页面内容
 - 💾 **智能缓存**: 内存缓存提升响应速度
 - 🚦 **访问控制**: 基于 IP 的请求频率限制
@@ -155,7 +156,7 @@ GET /api/search?q=钻石&pretty=true
 - `pageName` (必需): 页面名称，支持 URL 编码
 
 **查询参数:**
-- `format` (可选): 输出格式 - `html`, `markdown`, `both`，默认 `both`
+- `format` (可选): 输出格式 - `html`, `markdown`, `both`, `wikitext`，默认 `both`
 - `useCache` (可选): 是否使用缓存，默认 `true`
 - `includeMetadata` (可选): 是否包含元数据，默认 `true`
 - `pretty` (可选): JSON格式化，支持 true/false/1/0/yes/no，默认 false
@@ -165,10 +166,11 @@ GET /api/search?q=钻石&pretty=true
 GET /api/page/钻石
 GET /api/page/%E9%92%BB%E7%9F%B3?format=markdown
 GET /api/page/Diamond?format=html&useCache=false
+GET /api/page/数据包?format=wikitext
 GET /api/page/钻石?pretty=true
 ```
 
-**响应示例:**
+**响应示例 (HTML/Markdown格式):**
 ```json
 {
   "success": true,
@@ -213,6 +215,31 @@ GET /api/page/钻石?pretty=true
 }
 ```
 
+**响应示例 (Wikitext格式):**
+```json
+{
+  "success": true,
+  "data": {
+    "page": {
+      "pageName": "数据包",
+      "url": "https://zh.minecraft.wiki/w/数据包",
+      "content": {
+        "wikitext": "{{Infobox\n| title = 数据包\n| image = [[File:Data Pack.png|200px]]\n| type = 游戏机制\n| affects = 世界生成、进度、战利品表等\n}}\n\n'''数据包'''（Data Pack）是一种自定义游戏内容的方式...\n\n== 功能 ==\n* 自定义[[进度]]\n* 修改[[战利品表]]\n* 自定义[[世界生成]]\n\n[[Category:游戏机制]]\n[[Category:数据包]]"
+      },
+      "meta": {
+        "wordCount": 256,
+        "processingTime": 890
+      }
+    },
+    "metadata": {
+      "requestTime": 1200,
+      "format": "wikitext",
+      "timestamp": "2024-01-01T12:00:00Z"
+    }
+  }
+}
+```
+
 #### POST /api/pages
 批量获取多个页面内容
 
@@ -222,6 +249,16 @@ GET /api/page/钻石?pretty=true
   "pages": ["钻石", "金锭", "铁锭"],
   "format": "markdown",
   "concurrency": 3,
+  "useCache": true
+}
+```
+
+**Wikitext格式请求体:**
+```json
+{
+  "pages": ["数据包", "命令", "进度"],
+  "format": "wikitext",
+  "concurrency": 2,
   "useCache": true
 }
 ```
@@ -424,6 +461,7 @@ GET /api/page/钻石?pretty=true
 | `SEARCH_ERROR` | 500 | 搜索服务错误 | 检查搜索关键词或稍后重试 |
 | `PARSE_ERROR` | 500 | 内容解析错误 | 页面格式可能有问题，请报告 |
 | `HTML_FETCH_ERROR` | 502 | 页面获取失败 | Wiki服务可能暂时不可用 |
+| `SOURCE_FETCH_ERROR` | 502 | 源代码获取失败 | 编辑页面可能暂时不可用 |
 | `NETWORK_ERROR` | 503 | 网络连接错误 | 检查网络连接或稍后重试 |
 | `TIMEOUT_ERROR` | 504 | 请求超时 | 稍后重试或联系管理员 |
 
@@ -652,6 +690,23 @@ const batchResponse = await fetch('http://localhost:3000/api/pages', {
   })
 });
 const batchData = await batchResponse.json();
+
+// 获取页面源代码
+const sourceResponse = await fetch('http://localhost:3000/api/page/数据包?format=wikitext');
+const sourceData = await sourceResponse.json();
+
+// 批量获取源代码
+const batchSourceResponse = await fetch('http://localhost:3000/api/pages', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    pages: ['数据包', '命令', '进度'],
+    format: 'wikitext'
+  })
+});
+const batchSourceData = await batchSourceResponse.json();
 ```
 
 ### cURL
@@ -676,6 +731,14 @@ curl "http://localhost:3000/health"
 curl -X POST "http://localhost:3000/api/pages" \
   -H "Content-Type: application/json" \
   -d '{"pages":["钻石","金锭"],"format":"markdown"}'
+
+# 获取页面源代码
+curl "http://localhost:3000/api/page/数据包?format=wikitext"
+
+# 批量获取源代码
+curl -X POST "http://localhost:3000/api/pages" \
+  -H "Content-Type: application/json" \
+  -d '{"pages":["数据包","命令"],"format":"wikitext"}'
 ```
 
 ### Python
@@ -707,6 +770,16 @@ pretty_page_data = pretty_page_response.json()
 batch_response = requests.post('http://localhost:3000/api/pages',
                              json={'pages': ['钻石', '金锭'], 'format': 'markdown'})
 batch_data = batch_response.json()
+
+# 获取页面源代码
+source_response = requests.get('http://localhost:3000/api/page/数据包',
+                             params={'format': 'wikitext'})
+source_data = source_response.json()
+
+# 批量获取源代码
+batch_source_response = requests.post('http://localhost:3000/api/pages',
+                                    json={'pages': ['数据包', '命令'], 'format': 'wikitext'})
+batch_source_data = batch_source_response.json()
 ```
 
 ---
@@ -773,6 +846,12 @@ pm2 startup
 4. 联系开发团队
 
 ## 更新日志
+
+### v1.1.0 (2024-01-XX)
+- ✅ 新增 Wikitext 源代码获取功能
+- ✅ 支持通过 `?action=edit` 参数获取页面源代码
+- ✅ 修复 UTF-8 编码问题，支持中文字符批量请求
+- ✅ 新增 `SOURCE_FETCH_ERROR` 错误处理
 
 ### v1.0.0 (2024-01-01)
 - ✅ 实现搜索 API

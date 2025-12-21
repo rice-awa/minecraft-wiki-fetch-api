@@ -87,7 +87,7 @@ class WikiPageService {
             }
 
             const {
-                format = 'both',          // 'html', 'markdown', 'both'
+                format = 'both',          // 'html', 'markdown', 'both', 'wikitext'
                 useCache = true,
                 forceRefresh = false,
                 includeMetadata = true,
@@ -108,7 +108,7 @@ class WikiPageService {
 
             // 构建页面URL
             const pageUrl = this.urlHandler.buildPageUrl(normalizedPageName);
-            
+
             // 检查页面是否存在
             const existsResult = await this.checkPageExists(normalizedPageName);
             if (!existsResult.exists) {
@@ -123,6 +123,15 @@ class WikiPageService {
                 };
             }
 
+            // 如果是wikitext格式，获取编辑页面内容
+            if (format === 'wikitext') {
+                return await this.getPageSource(normalizedPageName, {
+                    useCache,
+                    forceRefresh,
+                    includeMetadata
+                });
+            }
+
             // 获取页面HTML内容
             const htmlResult = await this.fetchPageHtml(pageUrl);
             if (!htmlResult.success) {
@@ -131,7 +140,7 @@ class WikiPageService {
 
             // 解析页面内容
             const parseResult = this.contentParser.parsePageContent(
-                htmlResult.data.html, 
+                htmlResult.data.html,
                 { pageName: normalizedPageName, url: pageUrl }
             );
 
@@ -305,7 +314,7 @@ class WikiPageService {
     async fetchPageHtml(pageUrl) {
         try {
             const response = await this.httpClient.get(pageUrl);
-            
+
             if (!response.data) {
                 throw new Error('未收到页面内容');
             }
@@ -322,13 +331,113 @@ class WikiPageService {
 
         } catch (error) {
             logger.error('页面HTML获取失败', { pageUrl, error: error.message });
-            
+
             return {
                 success: false,
                 error: {
                     code: 'HTML_FETCH_ERROR',
                     message: error.message,
                     details: { url: pageUrl }
+                },
+                data: null
+            };
+        }
+    }
+
+    /**
+     * 获取页面的Wikitext源代码
+     * @param {string} pageName - 页面名称
+     * @param {Object} options - 获取选项
+     * @returns {Object} 源代码获取结果
+     */
+    async getPageSource(pageName, options = {}) {
+        try {
+            const {
+                useCache = true,
+                forceRefresh = false,
+                includeMetadata = true
+            } = options;
+
+            // 检查缓存
+            if (useCache && !forceRefresh) {
+                const cachedResult = this._getCachedResult(pageName, 'wikitext');
+                if (cachedResult) {
+                    logger.info('页面源代码从缓存返回', { pageName });
+                    return cachedResult;
+                }
+            }
+
+            // 构建编辑页面URL
+            const editUrl = this.urlHandler.buildPageUrl(pageName, { action: 'edit' });
+
+            // 获取编辑页面HTML内容
+            const htmlResult = await this.fetchPageHtml(editUrl);
+            if (!htmlResult.success) {
+                return htmlResult;
+            }
+
+            // 解析Wikitext源代码
+            const cheerio = require('cheerio');
+            const $ = cheerio.load(htmlResult.data.html);
+
+            // 查找源代码编辑器textarea
+            const wikitext = $('#wpTextbox1').text();
+
+            if (!wikitext) {
+                throw new Error('未找到Wikitext源代码');
+            }
+
+            // 构建结果对象
+            const result = {
+                success: true,
+                data: {
+                    pageName: pageName,
+                    url: this.urlHandler.buildPageUrl(pageName),
+                    content: {
+                        wikitext: wikitext
+                    },
+                    meta: {
+                        wordCount: wikitext.length,
+                        processingTime: Date.now() - htmlResult.data.fetchTime
+                    }
+                }
+            };
+
+            // 添加元数据
+            if (includeMetadata) {
+                result.data.metadata = {
+                    fetchTime: Date.now(),
+                    format: 'wikitext',
+                    processingTime: result.data.meta.processingTime,
+                    cacheKey: this._generateCacheKey(pageName, 'wikitext')
+                };
+            }
+
+            // 缓存结果
+            if (useCache) {
+                this._cacheResult(pageName, 'wikitext', result);
+            }
+
+            logger.info('页面源代码获取成功', {
+                pageName,
+                wordCount: wikitext.length
+            });
+
+            return result;
+
+        } catch (error) {
+            logger.error('页面源代码获取失败', {
+                pageName,
+                error: error.message,
+                stack: error.stack
+            });
+
+            return {
+                success: false,
+                error: {
+                    code: 'SOURCE_FETCH_ERROR',
+                    message: error.message,
+                    details: null
                 },
                 data: null
             };
@@ -361,9 +470,17 @@ class WikiPageService {
         // 分批处理以控制并发
         for (let i = 0; i < pageNames.length; i += concurrency) {
             const batch = pageNames.slice(i, i + concurrency);
-            
+
             const batchPromises = batch.map(async (pageName) => {
                 try {
+                    // 调试日志：检查页面名称在批量处理中的状态
+                    logger.debug('批量处理页面', {
+                        originalPageName: pageName,
+                        pageNameType: typeof pageName,
+                        pageNameLength: pageName.length,
+                        firstCharCode: pageName.charCodeAt(0)
+                    });
+
                     const result = await this.getPage(pageName, singlePageOptions);
                     results.set(pageName, result);
                 } catch (error) {

@@ -150,6 +150,17 @@ class PageController {
                 ip: req.ip
             });
 
+            // 调试：检查页面名称在控制器中的状态
+            logger.debug('批量请求页面名称调试', {
+                originalBodyPages: req.body.pages,
+                validatedPages: pages,
+                pagesAreEqual: JSON.stringify(req.body.pages) === JSON.stringify(pages),
+                firstPageName: pages[0],
+                firstPageNameType: typeof pages[0],
+                firstPageNameLength: pages[0].length,
+                firstPageNameCharCodes: pages[0].split('').map(c => c.charCodeAt(0))
+            });
+
             // 批量获取页面
             const batchResult = await this.pageService.getPages(pages, {
                 format,
@@ -313,7 +324,7 @@ class PageController {
         }
 
         // 验证格式
-        const validFormats = ['html', 'markdown', 'both'];
+        const validFormats = ['html', 'markdown', 'both', 'wikitext'];
         if (query.format) {
             if (!validFormats.includes(query.format)) {
                 errors.push(`format参数必须是以下值之一: ${validFormats.join(', ')}`);
@@ -383,7 +394,7 @@ class PageController {
         }
 
         // 验证格式
-        const validFormats = ['html', 'markdown', 'both'];
+        const validFormats = ['html', 'markdown', 'both', 'wikitext'];
         if (body.format) {
             if (!validFormats.includes(body.format)) {
                 errors.push(`format参数必须是以下值之一: ${validFormats.join(', ')}`);
@@ -429,7 +440,8 @@ class PageController {
             'HTML_FETCH_ERROR': 502,
             'PARSE_ERROR': 500,
             'CONVERSION_ERROR': 500,
-            'PAGE_FETCH_ERROR': 500
+            'PAGE_FETCH_ERROR': 500,
+            'SOURCE_FETCH_ERROR': 500
         };
 
         return statusMap[errorCode] || 500;
