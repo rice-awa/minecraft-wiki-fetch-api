@@ -272,7 +272,7 @@ function validatePageParams(req, res, next) {
 
         // 验证格式
         if (format !== undefined) {
-            validator.enum(format, '输出格式 (format)', ['html', 'markdown', 'both'], false);
+            validator.enum(format, '输出格式 (format)', ['html', 'markdown', 'both', 'wikitext'], false);
         }
 
         // 验证缓存选项
@@ -323,7 +323,7 @@ function validateBatchPageParams(req, res, next) {
 
         // 验证格式
         if (format !== undefined) {
-            validator.enum(format, '输出格式 (format)', ['html', 'markdown', 'both'], false);
+            validator.enum(format, '输出格式 (format)', ['html', 'markdown', 'both', 'wikitext'], false);
         }
 
         // 验证并发数

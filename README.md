@@ -10,10 +10,11 @@ API支持Vercel一键部署，详情前往此项目查看：[Minecraft Wiki API 
 ## ✨ 核心功能
 
 - 🔍 **智能搜索**: 关键词搜索，相关度排序，分页浏览
-- 📄 **页面解析**: HTML/Markdown 格式输出，完整内容提取
+- 📄 **页面解析**: HTML/Markdown/Wikitext 格式输出，完整内容提取
 - 📦 **批量处理**: 支持批量获取多个页面内容
 - 💾 **智能缓存**: 多层缓存机制，提升响应速度
 - 🚦 **访问控制**: IP 限流，安全防护，健康监控
+- 📝 **源代码获取**: 支持获取页面的原始 Wikitext 源代码
 
 ## 🚀 快速开始
 
@@ -105,9 +106,16 @@ GET /api/page/钻石?format=markdown
 # 获取页面（格式化JSON）
 GET /api/page/钻石?format=markdown&pretty=true
 
+# 获取页面源代码
+GET /api/page/数据包?format=wikitext
+
 # 批量获取
 POST /api/pages
 {"pages": ["钻石", "金锭"], "format": "markdown"}
+
+# 批量获取源代码
+POST /api/pages
+{"pages": ["数据包", "命令"], "format": "wikitext"}
 
 # 健康检查
 GET /health

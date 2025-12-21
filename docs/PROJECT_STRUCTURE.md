@@ -83,6 +83,20 @@ minecraft-wiki-api/
 - **文件**: `src/services/`
 - **特点**: 模块化设计，可复用组件
 
+**主要服务组件:**
+- **WikiPageService**: 页面内容获取服务，支持HTML、Markdown、Wikitext格式
+- **WikiSearchService**: 搜索服务，支持关键词搜索和结果解析
+- **SearchUrlBuilder**: 搜索URL构建器，处理中文编码和命名空间
+- **PageUrlHandler**: 页面URL处理器，支持常规页面和编辑页面URL构建
+- **SearchResultsParser**: 搜索结果解析器，使用Cheerio解析HTML
+- **PageContentParser**: 页面内容解析器，提取结构化内容
+- **HtmlToMarkdownConverter**: HTML到Markdown转换器
+
+**新增Wikitext功能:**
+- **getPageSource()**: 通过 `?action=edit` 参数获取页面源代码
+- **支持批量Wikitext获取**: 批量处理多个页面的源代码
+- **缓存机制**: 与现有缓存系统集成，提升性能
+
 #### 4. 工具层 (Utils)
 - **职责**: 通用工具函数、辅助功能
 - **文件**: `src/utils/`
@@ -95,9 +109,10 @@ minecraft-wiki-api/
 - **Node.js 18+**: 现代 JavaScript 运行时
 
 ### 数据处理
-- **Cheerio**: 服务端 jQuery，用于 HTML 解析
+- **Cheerio**: 服务端 jQuery，用于 HTML 解析和Wikitext源代码提取
 - **Turndown**: HTML 到 Markdown 的转换器
 - **Axios**: Promise 基础的 HTTP 客户端
+- **Wikitext支持**: 通过 `?action=edit` 参数获取页面源代码
 
 ### 安全和中间件
 - **Helmet**: 安全 HTTP 头部设置
@@ -127,6 +142,13 @@ HTTP Response ← Controller ← SearchService ← ResultsParser ← Wiki Respon
 HTTP Request → Routes → Controller → PageService → UrlHandler → HttpClient → Wiki Page
                                                  ↓
 HTTP Response ← Controller ← PageService ← ContentParser ← MarkdownConverter ← HTML Content
+```
+
+### Wikitext源代码获取流程
+```
+HTTP Request → Routes → Controller → PageService → UrlHandler (with action=edit) → HttpClient → Wiki Edit Page
+                                                 ↓
+HTTP Response ← Controller ← PageService ← SourceExtractor ← HTML Parsing ← Edit Page Content
 ```
 
 ## 📦 模块依赖关系

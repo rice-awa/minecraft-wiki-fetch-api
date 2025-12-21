@@ -117,16 +117,18 @@ app.use(validateRequest({
 app.use(sanitizeParams);
 
 // Body parsing middleware with error handling
-app.use(express.json({ 
+app.use(express.json({
   limit: '10mb',
-  type: 'application/json'
+  type: 'application/json',
+  charset: 'utf-8'
 }));
 
-app.use(express.urlencoded({ 
-  extended: true, 
+app.use(express.urlencoded({
+  extended: true,
   limit: '10mb',
   parameterLimit: 1000,
-  type: 'application/x-www-form-urlencoded'
+  type: 'application/x-www-form-urlencoded',
+  charset: 'utf-8'
 }));
 
 // Request logging middleware
@@ -157,7 +159,7 @@ app.get('/', asyncHandler(async (req, res) => {
     status: healthInfo,
     endpoints: {
       search: 'GET /api/search?q={keyword}&limit={number}&pretty={true|false}',
-      page: 'GET /api/page/{pageName}?format={html|markdown|both}&pretty={true|false}',
+      page: 'GET /api/page/{pageName}?format={html|markdown|both|wikitext}&pretty={true|false}',
       batchPages: 'POST /api/pages',
       pageExists: 'GET /api/page/{pageName}/exists',
       health: 'GET /health',
@@ -251,6 +253,7 @@ async function startServer() {
     console.log(`   - GET /api/search?q=钻石`);
     console.log(`   - GET /api/search?q=钻石&limit=20&pretty=true`);
     console.log(`   - GET /api/page/钻石?format=markdown&pretty=true`);
+    console.log(`   - GET /api/page/钻石?format=wikitext&pretty=true`);
     console.log(`   - GET /api/page/钻石`);
     console.log(`   - POST /api/pages`);
     console.log(`   - GET /health`);
