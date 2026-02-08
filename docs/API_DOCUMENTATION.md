@@ -2,19 +2,23 @@
 
 ## 📋 概述
 
-Minecraft Wiki API 是一个功能完善的 RESTful API 服务，专门用于抓取、解析和转换 Minecraft 中文 Wiki 内容。提供智能搜索、页面内容获取、批量处理等功能，支持 HTML 和 Markdown 两种格式输出。
+Minecraft Wiki API 是一个功能完善的 RESTful API 服务，专门用于抓取、解析和转换 Minecraft 中文 Wiki 内容。提供智能搜索、页面内容获取、批量处理等功能，支持 HTML、Markdown 和 Wikitext 三种格式输出。
 
-**基础URL**: `http://localhost:3000`  
-**API版本**: v1.0.0  
-**内容类型**: `application/json; charset=utf-8`  
+**基础URL**: `http://localhost:3000` 或 `https://your-project.vercel.app`
+**API版本**: v1.0.0
+**内容类型**: `application/json; charset=utf-8`
 **字符编码**: UTF-8
+
+### 🌐 Web 控制台
+
+部署后访问根路径 `/` 即可使用可视化的 API 测试控制台，无需编写代码即可测试所有接口功能。
 
 ### 🌟 核心特性
 
 - 🔍 **智能搜索**: 支持关键词搜索，相关度排序，分页浏览
 - 📄 **页面解析**: 完整的页面内容解析，提取标题、正文、图片、表格等
-- 🔄 **格式转换**: 支持 HTML 到 Markdown 的高质量转换
-- 📝 **源代码获取**: 支持获取页面的原始 Wikitext 源代码
+- 🔄 **格式转换**: 支持 HTML、Markdown 和 Wikitext 三种格式输出
+- 📝 **Wikitext 源代码**: 支持获取页面的原始 Wikitext 源代码（`format=wikitext`）
 - 📦 **批量处理**: 支持批量获取多个页面内容
 - 💾 **智能缓存**: 内存缓存提升响应速度
 - 🚦 **访问控制**: 基于 IP 的请求频率限制
@@ -785,6 +789,33 @@ batch_source_data = batch_source_response.json()
 ---
 
 ## 🚀 部署
+
+### Vercel Serverless 部署（推荐）
+
+项目已完全适配 Vercel Serverless 部署，支持 Web 控制台和 API 服务。
+
+**一键部署：**
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/rice-awa/minecraft-wiki-fetch-api)
+
+**CLI 部署：**
+
+```bash
+npm install -g vercel
+vercel login
+npm run deploy
+```
+
+**Vercel 路由配置：**
+
+`vercel.json` 已配置好以下路由规则：
+
+| 路径 | 目标 | 说明 |
+|------|------|------|
+| `/` | `/public/index.html` | Web 控制台 |
+| `/api` | `/api/index.js` | API 入口 |
+| `/api/*` | `/api/index.js` | API 路由 |
+| `/health` | `/api/index.js` | 健康检查 |
 
 ### Docker 部署
 
