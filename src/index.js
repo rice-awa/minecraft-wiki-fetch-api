@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 
 // Import our custom modules
 const config = require('./config');
@@ -138,7 +139,7 @@ app.use(requestLoggingMiddleware());
 app.use(jsonFormatterMiddleware());
 
 // 静态文件服务 - 必须在API路由之前挂载，使根路径/能正确返回index.html
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Mount routes
 app.use('/health', healthRoutes);
