@@ -5,15 +5,14 @@
  * 模拟 Vercel 环境进行本地测试
  */
 
-const express = require('express');
-const app = require('../api/index.js');
-
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || 'localhost';
 
 // 设置 serverless 环境变量
 process.env.VERCEL = '1';
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
+const app = require('../api/index.js');
 
 console.log('🚀 启动 Serverless 开发服务器...\n');
 

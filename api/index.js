@@ -109,7 +109,7 @@ const limiter = rateLimit({
   skip: (req) => {
     return req.path.startsWith('/health');
   }
-}));
+});
 app.use(limiter);
 
 // Request validation and sanitization
@@ -162,7 +162,7 @@ app.get('/', asyncHandler(async (req, res) => {
     status: healthInfo,
     endpoints: {
       search: 'GET /api/search?q={keyword}&limit={number}&pretty={true|false}',
-      page: 'GET /api/page/{pageName}?format={html|markdown|both}&pretty={true|false}',
+      page: 'GET /api/page/{pageName}?format={html|markdown|both|wikitext}&pretty={true|false}',
       batchPages: 'POST /api/pages',
       pageExists: 'GET /api/page/{pageName}/exists',
       health: 'GET /health',
