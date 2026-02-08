@@ -137,12 +137,15 @@ app.use(requestLoggingMiddleware());
 // JSON格式化中间件
 app.use(jsonFormatterMiddleware());
 
+// 静态文件服务 - 必须在API路由之前挂载，使根路径/能正确返回index.html
+app.use(express.static('public'));
+
 // Mount routes
 app.use('/health', healthRoutes);
 app.use('/api', apiRoutes);
 
-// Root endpoint with enhanced information
-app.get('/', asyncHandler(async (req, res) => {
+// API 信息端点 - 返回API基本信息和可用端点列表
+app.get('/api', asyncHandler(async (req, res) => {
   const healthInfo = {
     status: 'healthy',
     uptime: process.uptime(),
