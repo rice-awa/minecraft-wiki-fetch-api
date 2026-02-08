@@ -4,6 +4,7 @@
 
 ## 功能特性
 
+- **Web 控制台**：访问根路径 `/` 即可使用可视化的 API 测试控制台
 - Wiki 搜索：`GET /api/search`
 - 页面获取：`GET /api/page/:pageName`
 - 页面源代码（Wikitext）：`format=wikitext`
@@ -32,11 +33,15 @@ npm run deploy
 
 将 `https://your-project.vercel.app` 替换为你的实际域名。
 
+**Web 控制台**：直接访问 `https://your-project.vercel.app/`
+
+**API 测试**：
+
 ```bash
-curl https://your-project.vercel.app/
 curl https://your-project.vercel.app/health
 curl "https://your-project.vercel.app/api/search?q=钻石&limit=5&pretty=true"
 curl "https://your-project.vercel.app/api/page/钻石?format=markdown&pretty=true"
+curl "https://your-project.vercel.app/api/page/工作台?format=wikitext&pretty=true"
 ```
 
 ## 环境变量（Vercel）
@@ -84,6 +89,8 @@ curl "https://your-project.vercel.app/api/page/钻石?format=markdown&pretty=tru
 }
 ```
 
+**format 可选值**：`html` / `markdown` / `both` / `wikitext`
+
 ### 健康检查
 
 - `GET /health`
@@ -109,7 +116,7 @@ npm run test:serverless
 
 项目当前使用 `api/index.js` 作为 serverless 入口，配合 `vercel.json` 路由转发，支持：
 
-- 根路径 `/`
+- **根路径 `/`**：返回 `public/index.html` Web 控制台
 - API 路径 `/api` 与 `/api/*`
 - 健康检查 `/health` 与 `/health/*`
 
