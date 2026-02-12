@@ -3,57 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minecraft Wiki API · 测试控制台</title>
-    
-    <!-- 
-        Vercel 部署样式修复：
-        - 移除 fonts.loli.net（部分地区不稳定）→ 纯系统字体堆栈，无需下载
-        - Tailwind CDN 替换为 jsDelivr + 官方双源 fallback，保证全球可用
-        - Font Awesome 替换为 jsDelivr 镜像，稳定性提升
-        - 所有自定义配置、内联样式保留，功能完整 
-    -->
-
-    <!-- Tailwind CSS 双源加载：先试官方，失败自动切 jsDelivr -->
+    <title>Minecraft Wiki API - 测试控制台</title>
+    <!-- Fonts - 使用国内 CDN -->
+    <link href="https://fonts.loli.net/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // 必须在 Tailwind 加载前定义配置
-        tailwind = {
+        tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        // 完全移除对 fonts.loli.net 的依赖，纯系统回退 —— 永不断联
-                        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
                     },
                     colors: {
                         mc: {
-                            green: '#4ade80',
+                            green: '#4ade80', // Minecraft green-ish
                             dark: '#1e293b',
                         }
                     }
                 }
             }
-        };
-
-        // 动态加载 Tailwind — 优先官方CDN，失败立即用 jsDelivr
-        (function loadTailwind() {
-            var primary = 'https://cdn.tailwindcss.com';
-            var fallback = 'https://cdn.jsdelivr.net/npm/tailwindcss@3.3.5/dist/tailwind.min.js';
-            var script = document.createElement('script');
-            script.src = primary;
-            script.onerror = function() {
-                console.warn('官方 Tailwind CDN 加载失败，切换至 jsDelivr');
-                var altScript = document.createElement('script');
-                altScript.src = fallback;
-                document.head.appendChild(altScript);
-            };
-            document.head.appendChild(script);
-        })();
+        }
     </script>
-
-    <!-- Font Awesome 6.4 (jsDelivr，全球加速) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
-
-    <!-- 内联关键样式：滚动条、语法高亮、加载动画（完全自包含） -->
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* Custom scrollbar for code blocks */
         .custom-scrollbar::-webkit-scrollbar {
@@ -89,14 +63,6 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }
-
-        /* 极简后备：即使极端情况 Tailwind 未加载，按钮依然有基本样式 */
-        .fallback-btn {
-            background-color: #10b981; 
-            color: white; 
-            padding: 0.5rem 1rem; 
-            border-radius: 0.5rem;
         }
     </style>
 </head>
