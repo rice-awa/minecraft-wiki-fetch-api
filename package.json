@@ -9,6 +9,8 @@
     "vercel-dev": "vercel dev",
     "deploy": "vercel --prod",
     "deploy:preview": "vercel",
+    "build": "cd web && npm install && npm run build",
+    "build:web": "cd web && npm install && npm run build",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

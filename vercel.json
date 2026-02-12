@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "buildCommand": "cd web && npm install && npm run build",
+  "outputDirectory": "public",
   "routes": [
     {
       "src": "/api",
@@ -16,6 +18,14 @@
     {
       "src": "/health/(.*)",
       "dest": "/api/index.js"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/public/assets/$1"
+    },
+    {
+      "src": "/vite.svg",
+      "dest": "/public/vite.svg"
     },
     {
       "src": "/",
