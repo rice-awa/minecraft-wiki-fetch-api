@@ -357,10 +357,10 @@
             <h2>健康检查测试</h2>
             <p class="description">检查API服务的运行状态和依赖服务连接情况</p>
             <div class="button-group">
-                <button onclick="testHealth('/health')">基础健康检查</button>
-                <button class="secondary" onclick="testHealth('/health/detailed')">详细健康检查</button>
-                <button class="secondary" onclick="testHealth('/health/ready')">就绪状态检查</button>
-                <button onclick="testHealth('/health/live')">存活状态检查</button>
+                <button id="btn-health-basic">基础健康检查</button>
+                <button class="secondary" id="btn-health-detailed">详细健康检查</button>
+                <button class="secondary" id="btn-health-ready">就绪状态检查</button>
+                <button id="btn-health-live">存活状态检查</button>
             </div>
             <div id="health-result" class="result-container">
                 <div class="result-header">
@@ -384,10 +384,10 @@
                 <input type="number" id="search-limit" value="10" min="1" max="30">
             </div>
             <div class="button-group">
-                <button onclick="testSearch()">执行搜索</button>
-                <button class="secondary" onclick="testSearch(true)">格式化输出</button>
-                <button onclick="quickSearch('红石')">快速搜索: 红石</button>
-                <button onclick="quickSearch('合成')">快速搜索: 合成</button>
+                <button id="btn-search">执行搜索</button>
+                <button class="secondary" id="btn-search-pretty">格式化输出</button>
+                <button id="btn-quick-redstone">快速搜索: 红石</button>
+                <button id="btn-quick-craft">快速搜索: 合成</button>
             </div>
             <div id="search-result" class="result-container">
                 <div class="result-header">
@@ -416,12 +416,12 @@
                 </select>
             </div>
             <div class="button-group">
-                <button onclick="testPage()">获取页面</button>
-                <button class="secondary" onclick="testPage(true)">格式化输出</button>
-                <button onclick="quickPage('铁锭')">快速获取: 铁锭</button>
-                <button onclick="quickPage('末影龙')">快速获取: 末影龙</button>
-                <button onclick="testPageExists()">检查页面是否存在</button>
-                <button onclick="testPageWikitext()">测试 Wikitext 格式</button>
+                <button id="btn-page">获取页面</button>
+                <button class="secondary" id="btn-page-pretty">格式化输出</button>
+                <button id="btn-quick-page-iron">快速获取: 铁锭</button>
+                <button id="btn-quick-page-ender">快速获取: 末影龙</button>
+                <button id="btn-page-exists">检查页面是否存在</button>
+                <button id="btn-page-wikitext">测试 Wikitext 格式</button>
             </div>
             <div id="page-result" class="result-container">
                 <div class="result-header">
@@ -456,9 +456,9 @@
                 <input type="number" id="batch-concurrency" value="3" min="1" max="5">
             </div>
             <div class="button-group">
-                <button onclick="testBatchPages()">批量获取</button>
-                <button class="secondary" onclick="loadPreset('tools')">预设: 工具</button>
-                <button class="secondary" onclick="loadPreset('blocks')">预设: 方块</button>
+                <button id="btn-batch">批量获取</button>
+                <button class="secondary" id="btn-preset-tools">预设: 工具</button>
+                <button class="secondary" id="btn-preset-blocks">预设: 方块</button>
             </div>
             <div id="batch-result" class="result-container">
                 <div class="result-header">
@@ -656,9 +656,37 @@
             });
         }
 
+        // 绑定事件监听器
+        function bindEventListeners() {
+            // 健康检查按钮
+            document.getElementById('btn-health-basic').addEventListener('click', () => testHealth('/health'));
+            document.getElementById('btn-health-detailed').addEventListener('click', () => testHealth('/health/detailed'));
+            document.getElementById('btn-health-ready').addEventListener('click', () => testHealth('/health/ready'));
+            document.getElementById('btn-health-live').addEventListener('click', () => testHealth('/health/live'));
+
+            // 搜索按钮
+            document.getElementById('btn-search').addEventListener('click', () => testSearch());
+            document.getElementById('btn-search-pretty').addEventListener('click', () => testSearch(true));
+            document.getElementById('btn-quick-redstone').addEventListener('click', () => quickSearch('红石'));
+            document.getElementById('btn-quick-craft').addEventListener('click', () => quickSearch('合成'));
+
+            // 页面获取按钮
+            document.getElementById('btn-page').addEventListener('click', () => testPage());
+            document.getElementById('btn-page-pretty').addEventListener('click', () => testPage(true));
+            document.getElementById('btn-quick-page-iron').addEventListener('click', () => quickPage('铁锭'));
+            document.getElementById('btn-quick-page-ender').addEventListener('click', () => quickPage('末影龙'));
+            document.getElementById('btn-page-exists').addEventListener('click', () => testPageExists());
+            document.getElementById('btn-page-wikitext').addEventListener('click', () => testPageWikitext());
+
+            // 批量操作按钮
+            document.getElementById('btn-batch').addEventListener('click', () => testBatchPages());
+            document.getElementById('btn-preset-tools').addEventListener('click', () => loadPreset('tools'));
+            document.getElementById('btn-preset-blocks').addEventListener('click', () => loadPreset('blocks'));
+        }
+
         // 页面加载完成后执行健康检查
         document.addEventListener('DOMContentLoaded', function() {
-            // 自动执行一次基础健康检查
+            bindEventListeners();
             testHealth('/health');
         });
     </script>
