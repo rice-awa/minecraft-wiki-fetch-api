@@ -1,580 +1,603 @@
 <!DOCTYPE html>
-<html lang="zh-CN" class="scroll-smooth">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minecraft Wiki API · 测试控制台</title>
-    
-    <!-- 
-        Vercel 部署样式修复：
-        - 移除 fonts.loli.net（部分地区不稳定）→ 纯系统字体堆栈，无需下载
-        - Tailwind CDN 替换为 jsDelivr + 官方双源 fallback，保证全球可用
-        - Font Awesome 替换为 jsDelivr 镜像，稳定性提升
-        - 所有自定义配置、内联样式保留，功能完整 
-    -->
-
-    <!-- Tailwind CSS 双源加载：先试官方，失败自动切 jsDelivr -->
-    <script>
-        // 必须在 Tailwind 加载前定义配置
-        tailwind = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        // 完全移除对 fonts.loli.net 的依赖，纯系统回退 —— 永不断联
-                        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
-                    },
-                    colors: {
-                        mc: {
-                            green: '#4ade80',
-                            dark: '#1e293b',
-                        }
-                    }
-                }
-            }
-        };
-
-        // 动态加载 Tailwind — 优先官方CDN，失败立即用 jsDelivr
-        (function loadTailwind() {
-            var primary = 'https://cdn.tailwindcss.com';
-            var fallback = 'https://cdn.jsdelivr.net/npm/tailwindcss@3.3.5/dist/tailwind.min.js';
-            var script = document.createElement('script');
-            script.src = primary;
-            script.onerror = function() {
-                console.warn('官方 Tailwind CDN 加载失败，切换至 jsDelivr');
-                var altScript = document.createElement('script');
-                altScript.src = fallback;
-                document.head.appendChild(altScript);
-            };
-            document.head.appendChild(script);
-        })();
-    </script>
-
-    <!-- Font Awesome 6.4 (jsDelivr，全球加速) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
-
-    <!-- 内联关键样式：滚动条、语法高亮、加载动画（完全自包含） -->
+    <title>Minecraft Wiki API - 测试控制台</title>
     <style>
-        /* Custom scrollbar for code blocks */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+        :root {
+            --background: #fafafa;
+            --foreground: #0a0a0a;
+            --card: #ffffff;
+            --card-foreground: #0a0a0a;
+            --border: #e4e4e7;
+            --primary: #ecf0f1;
+            --primary-foreground: #000000;
+            --secondary: #f4f4f5;
+            --secondary-foreground: #0a0a0a;
+            --muted: #f4f4f5;
+            --muted-foreground: #6b7280;
+            --accent: #f4f4f5;
+            --accent-foreground: #0a0a0a;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --destructive: #ef4444;
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #1e293b;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-        }
-        
-        /* Syntax highlighting classes */
-        .json-key { color: #9cdcfe; }
-        .json-string { color: #ce9178; }
-        .json-number { color: #b5cea8; }
-        .json-boolean { color: #569cd6; }
-        .json-null { color: #569cd6; }
 
-        .loader {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #10b981;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: var(--background);
+            color: var(--foreground);
+            line-height: 1.7;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-weight: 400;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        header {
+            background: var(--primary);
+            color: var(--primary-foreground);
+            padding: 3rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .subtitle {
+            font-size: 1.125rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        main {
+            flex: 1;
+            padding: 2rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        section {
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h2 {
+            font-size: 1.875rem;
+            margin-bottom: 1.25rem;
+            color: var(--foreground);
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+
+        .description {
+            color: var(--muted-foreground);
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .quick-link {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: var(--card-foreground);
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .quick-link:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .quick-link h3 {
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--foreground);
+        }
+
+        .quick-link p {
+            color: var(--muted-foreground);
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            max-width: 600px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.625rem;
+            font-weight: 500;
+            color: var(--foreground);
+            font-size: 0.875rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            transition: all 0.15s ease;
+            background: var(--card);
+            color: var(--card-foreground);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 2rem 0;
+        }
+
+        button {
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            background: var(--foreground);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transform: translateY(-1px);
+        }
+
+        button.secondary {
+            background: var(--secondary);
+            color: var(--secondary-foreground);
+            border: 1px solid var(--border);
+        }
+
+        button.secondary:hover {
+            background: var(--muted);
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .result-container {
+            margin-top: 2rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: none;
+            background: var(--card);
+            overflow: hidden;
+        }
+
+        .result-header {
+            background: var(--muted);
+            color: var(--muted-foreground);
+            padding: 1rem 1.25rem;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.875rem;
+        }
+
+        .result-content {
+            background: var(--card);
+            color: var(--card-foreground);
+            padding: 1.25rem;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;
+            font-size: 0.8125rem;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted-foreground);
+            padding: 0.375rem 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
+        }
+
+        .copy-btn:hover {
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border-color: var(--primary);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--muted-foreground);
+        }
+
+        .spinner {
+            border: 2px solid var(--border);
+            border-top: 2px solid var(--primary);
             border-radius: 50%;
             width: 20px;
             height: 20px;
             animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
         }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
 
-        /* 极简后备：即使极端情况 Tailwind 未加载，按钮依然有基本样式 */
-        .fallback-btn {
-            background-color: #10b981; 
-            color: white; 
-            padding: 0.5rem 1rem; 
-            border-radius: 0.5rem;
+        @media (max-width: 768px) {
+            header {
+                padding: 2rem 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            main {
+                padding: 1.5rem 1rem;
+            }
+            
+            .quick-links {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .quick-link {
+                padding: 1.25rem;
+            }
+            
+            .button-group {
+                gap: 0.625rem;
+            }
+            
+            button {
+                padding: 0.75rem 1.25rem;
+                font-size: 0.8125rem;
+            }
+            
+            .result-header {
+                padding: 0.875rem 1rem;
+            }
+            
+            .result-content {
+                padding: 1rem;
+                font-size: 0.75rem;
+            }
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-emerald-100 selection:text-emerald-900">
-
-    <!-- Header -->
-    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm transition-all duration-300">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center gap-3">
-                    <div class="bg-emerald-500 text-white p-2 rounded-lg shadow-sm">
-                        <i class="fa-solid fa-cube text-xl"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold text-slate-900 tracking-tight">Minecraft Wiki API</h1>
-                        <p class="text-xs text-slate-500 font-medium">开发者测试控制台</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-4">
-                    <span class="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        System Ready
-                    </span>
-                    <a href="https://github.com/rice-awa/minecraft-wiki-fetch-api" target="_blank" class="text-slate-400 hover:text-slate-800 transition-colors">
-                        <i class="fa-brands fa-github text-xl"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
+<body>
+    <header>
+        <h1>Minecraft Wiki API</h1>
+        <p class="subtitle">测试控制台 - 中文Wiki数据获取服务</p>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
-
-        <!-- Quick Links Section -->
+    <main>
+        <!-- 快速链接 -->
         <section>
-            <div class="flex items-center gap-2 mb-6">
-                <i class="fa-solid fa-bolt text-emerald-500"></i>
-                <h2 class="text-lg font-semibold text-slate-900">快速导航</h2>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <a href="/health" target="_blank" class="group bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-100 transition-colors">
-                            <i class="fa-solid fa-heart-pulse"></i>
-                        </div>
-                        <i class="fa-solid fa-arrow-up-right-from-square text-slate-300 group-hover:text-emerald-500 text-xs"></i>
-                    </div>
-                    <h3 class="font-semibold text-slate-900 mb-1">健康检查</h3>
-                    <p class="text-sm text-slate-500">查看服务运行状态</p>
+            <h2>快速链接</h2>
+            <div class="quick-links">
+                <a href="/health" class="quick-link" target="_blank">
+                    <h3>健康检查</h3>
+                    <p>检查服务状态</p>
                 </a>
-
-                <a href="/api" target="_blank" class="group bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="p-2 bg-purple-50 text-purple-600 rounded-lg group-hover:bg-purple-100 transition-colors">
-                            <i class="fa-solid fa-book"></i>
-                        </div>
-                        <i class="fa-solid fa-arrow-up-right-from-square text-slate-300 group-hover:text-emerald-500 text-xs"></i>
-                    </div>
-                    <h3 class="font-semibold text-slate-900 mb-1">API 文档</h3>
-                    <p class="text-sm text-slate-500">查看完整接口定义</p>
+                <a href="/api" class="quick-link" target="_blank">
+                    <h3>API文档</h3>
+                    <p>查看完整API信息</p>
                 </a>
-
-                <a href="/api/search?q=钻石&pretty=true" target="_blank" class="group bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="p-2 bg-orange-50 text-orange-600 rounded-lg group-hover:bg-orange-100 transition-colors">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                        </div>
-                        <i class="fa-solid fa-arrow-up-right-from-square text-slate-300 group-hover:text-emerald-500 text-xs"></i>
-                    </div>
-                    <h3 class="font-semibold text-slate-900 mb-1">GET 搜索示例</h3>
-                    <p class="text-sm text-slate-500">直接调用搜索接口</p>
+                <a href="/api/search?q=钻石&pretty=true" class="quick-link" target="_blank">
+                    <h3>快速搜索</h3>
+                    <p>搜索"钻石"示例</p>
                 </a>
-
-                <a href="/api/page/钻石?pretty=true" target="_blank" class="group bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="p-2 bg-teal-50 text-teal-600 rounded-lg group-hover:bg-teal-100 transition-colors">
-                            <i class="fa-solid fa-file-code"></i>
-                        </div>
-                        <i class="fa-solid fa-arrow-up-right-from-square text-slate-300 group-hover:text-emerald-500 text-xs"></i>
-                    </div>
-                    <h3 class="font-semibold text-slate-900 mb-1">GET 页面示例</h3>
-                    <p class="text-sm text-slate-500">获取单页面JSON</p>
-                </a>
-
-                <a href="/api/page/工作台?format=wikitext&pretty=true" target="_blank" class="group bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-100 transition-colors">
-                            <i class="fa-solid fa-code"></i>
-                        </div>
-                        <i class="fa-solid fa-arrow-up-right-from-square text-slate-300 group-hover:text-emerald-500 text-xs"></i>
-                    </div>
-                    <h3 class="font-semibold text-slate-900 mb-1">GET Wikitext</h3>
-                    <p class="text-sm text-slate-500">获取页面源代码</p>
+                <a href="/api/page/钻石?pretty=true" class="quick-link" target="_blank">
+                    <h3>页面示例</h3>
+                    <p>获取"钻石"页面</p>
                 </a>
             </div>
         </section>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <!-- Left Column: Health & Search -->
-            <div class="lg:col-span-7 space-y-8">
-                
-                <!-- Health Check Card -->
-                <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                        <div class="flex items-center gap-2">
-                            <span class="w-1.5 h-4 bg-emerald-500 rounded-full"></span>
-                            <h2 class="font-semibold text-slate-800">系统诊断</h2>
-                        </div>
-                        <span class="text-xs text-slate-400 font-mono">/health/*</span>
-                    </div>
-                    <div class="p-6">
-                        <div class="flex flex-wrap gap-3 mb-6">
-                            <button onclick="testHealth('/health')" class="flex-1 min-w-[120px] px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm shadow-emerald-200 transition-all active:scale-95 flex justify-center items-center gap-2">
-                                <i class="fa-solid fa-check-circle"></i> 基础检查
-                            </button>
-                            <button onclick="testHealth('/health/detailed')" class="flex-1 min-w-[120px] px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-emerald-300 hover:text-emerald-700 text-sm font-medium rounded-lg transition-all active:scale-95">
-                                详细信息
-                            </button>
-                            <button onclick="testHealth('/health/live')" class="flex-1 min-w-[120px] px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-emerald-300 hover:text-emerald-700 text-sm font-medium rounded-lg transition-all active:scale-95">
-                                存活状态
-                            </button>
-                        </div>
-                        
-                        <!-- Console Output -->
-                        <div id="health-result" class="hidden group relative">
-                            <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onclick="copyResult('health-result')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-2 py-1 rounded border border-slate-600">
-                                    <i class="fa-regular fa-copy mr-1"></i>Copy
-                                </button>
-                            </div>
-                            <div class="bg-slate-900 rounded-lg p-4 font-mono text-sm overflow-x-auto custom-scrollbar shadow-inner max-h-64">
-                                <pre id="health-content" class="text-slate-300"></pre>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Search Card -->
-                <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                        <div class="flex items-center gap-2">
-                            <span class="w-1.5 h-4 bg-blue-500 rounded-full"></span>
-                            <h2 class="font-semibold text-slate-800">全站搜索</h2>
-                        </div>
-                        <span class="text-xs text-slate-400 font-mono">/api/search</span>
-                    </div>
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-                            <div class="sm:col-span-2 space-y-1.5">
-                                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">关键词</label>
-                                <div class="relative">
-                                    <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400"></i>
-                                    <input type="text" id="search-keyword" value="钻石" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400" placeholder="例如: 铁锭">
-                                </div>
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">数量限制</label>
-                                <input type="number" id="search-limit" value="5" min="1" max="50" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
-                            </div>
-                        </div>
-
-                        <div class="flex flex-wrap items-center gap-3 mb-6">
-                            <button onclick="testSearch(true)" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm shadow-blue-200 transition-all active:scale-95">
-                                <i class="fa-solid fa-play mr-1.5"></i> 执行搜索
-                            </button>
-                            <div class="h-6 w-px bg-slate-200 mx-1"></div>
-                            <span class="text-xs text-slate-500 font-medium">热门:</span>
-                            <button onclick="quickSearch('红石')" class="px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 hover:border-red-200 rounded-md text-xs font-medium transition-colors">红石</button>
-                            <button onclick="quickSearch('末影龙')" class="px-3 py-1.5 bg-purple-50 text-purple-600 border border-purple-100 hover:bg-purple-100 hover:border-purple-200 rounded-md text-xs font-medium transition-colors">末影龙</button>
-                        </div>
-
-                        <!-- Console Output -->
-                        <div id="search-result" class="hidden group relative">
-                            <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                <button onclick="copyResult('search-result')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-2 py-1 rounded border border-slate-600 backdrop-blur">
-                                    <i class="fa-regular fa-copy mr-1"></i>Copy
-                                </button>
-                            </div>
-                            <div class="bg-slate-900 rounded-lg p-4 font-mono text-sm overflow-x-auto custom-scrollbar shadow-inner max-h-[400px]">
-                                <pre id="search-content" class="text-slate-300"></pre>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+        <!-- 健康检查测试 -->
+        <section>
+            <h2>健康检查测试</h2>
+            <p class="description">检查API服务的运行状态和依赖服务连接情况</p>
+            <div class="button-group">
+                <button onclick="testHealth('/health')">基础健康检查</button>
+                <button class="secondary" onclick="testHealth('/health/detailed')">详细健康检查</button>
+                <button class="secondary" onclick="testHealth('/health/ready')">就绪状态检查</button>
+                <button onclick="testHealth('/health/live')">存活状态检查</button>
             </div>
+            <div id="health-result" class="result-container">
+                <div class="result-header">
+                    <span>健康检查结果</span>
+                    <button class="copy-btn" onclick="copyResult('health-result')">复制</button>
+                </div>
+                <div class="result-content" id="health-content"></div>
+            </div>
+        </section>
 
-            <!-- Right Column: Page & Batch -->
-            <div class="lg:col-span-5 space-y-8">
-                
-                <!-- Page Content Card -->
-                <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                        <div class="flex items-center gap-2">
-                            <span class="w-1.5 h-4 bg-purple-500 rounded-full"></span>
-                            <h2 class="font-semibold text-slate-800">页面获取</h2>
-                        </div>
-                        <span class="text-xs text-slate-400 font-mono">/api/page/{title}</span>
-                    </div>
-                    <div class="p-6">
-                        <div class="space-y-4 mb-6">
-                            <div class="space-y-1.5">
-                                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">页面标题</label>
-                                <input type="text" id="page-name" value="草方块" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all placeholder:text-slate-400">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">格式</label>
-                                <div class="relative">
-                                    <select id="page-format" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all appearance-none cursor-pointer">
-                                        <option value="both">Both (HTML + Markdown)</option>
-                                        <option value="html">HTML Only</option>
-                                        <option value="markdown">Markdown Only</option>
-                                        <option value="wikitext">Wikitext Only</option>
-                                    </select>
-                                    <i class="fa-solid fa-chevron-down absolute right-4 top-3.5 text-slate-400 pointer-events-none text-xs"></i>
-                                </div>
-                            </div>
-                        </div>
+        <!-- 搜索功能测试 -->
+        <section>
+            <h2>搜索功能测试</h2>
+            <p class="description">测试Wiki内容搜索功能</p>
+            <div class="form-group">
+                <label for="search-keyword">搜索关键词:</label>
+                <input type="text" id="search-keyword" value="钻石" placeholder="输入要搜索的关键词">
+            </div>
+            <div class="form-group">
+                <label for="search-limit">结果数量:</label>
+                <input type="number" id="search-limit" value="10" min="1" max="30">
+            </div>
+            <div class="button-group">
+                <button onclick="testSearch()">执行搜索</button>
+                <button class="secondary" onclick="testSearch(true)">格式化输出</button>
+                <button onclick="quickSearch('红石')">快速搜索: 红石</button>
+                <button onclick="quickSearch('合成')">快速搜索: 合成</button>
+            </div>
+            <div id="search-result" class="result-container">
+                <div class="result-header">
+                    <span>搜索结果</span>
+                    <button class="copy-btn" onclick="copyResult('search-result')">复制</button>
+                </div>
+                <div class="result-content" id="search-content"></div>
+            </div>
+        </section>
 
-                        <div class="grid grid-cols-2 gap-3 mb-6">
-                            <button onclick="testPage(true)" class="col-span-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg shadow-sm shadow-purple-200 transition-all active:scale-95">
-                                获取页面详情
-                            </button>
-                            <button onclick="testPageExists()" class="px-3 py-2 bg-white border border-slate-200 text-slate-600 hover:border-purple-300 hover:text-purple-700 text-sm font-medium rounded-lg transition-colors">
-                                检查存在性
-                            </button>
-                            <button onclick="quickPage('工作台')" class="px-3 py-2 bg-white border border-slate-200 text-slate-600 hover:border-purple-300 hover:text-purple-700 text-sm font-medium rounded-lg transition-colors">
-                                示例: 工作台
-                            </button>
-                        </div>
+        <!-- 页面获取测试 -->
+        <section>
+            <h2>页面内容获取测试</h2>
+            <p class="description">获取Wiki页面的详细内容</p>
+            <div class="form-group">
+                <label for="page-name">页面名称:</label>
+                <input type="text" id="page-name" value="钻石" placeholder="输入页面名称">
+            </div>
+            <div class="form-group">
+                <label for="page-format">输出格式:</label>
+                <select id="page-format">
+                    <option value="both">both - HTML和Markdown</option>
+                    <option value="html">html - 仅HTML</option>
+                    <option value="markdown">markdown - 仅Markdown</option>
+                    <option value="wikitext">wikitext - Wikitext源码</option>
+                </select>
+            </div>
+            <div class="button-group">
+                <button onclick="testPage()">获取页面</button>
+                <button class="secondary" onclick="testPage(true)">格式化输出</button>
+                <button onclick="quickPage('铁锭')">快速获取: 铁锭</button>
+                <button onclick="quickPage('末影龙')">快速获取: 末影龙</button>
+                <button onclick="testPageExists()">检查页面是否存在</button>
+                <button onclick="testPageWikitext()">测试 Wikitext 格式</button>
+            </div>
+            <div id="page-result" class="result-container">
+                <div class="result-header">
+                    <span>页面内容结果</span>
+                    <button class="copy-btn" onclick="copyResult('page-result')">复制</button>
+                </div>
+                <div class="result-content" id="page-content"></div>
+            </div>
+        </section>
 
-                         <!-- Console Output -->
-                         <div id="page-result" class="hidden group relative">
-                            <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                <button onclick="copyResult('page-result')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-2 py-1 rounded border border-slate-600 backdrop-blur">
-                                    <i class="fa-regular fa-copy mr-1"></i>
-                                </button>
-                            </div>
-                            <div class="bg-slate-900 rounded-lg p-4 font-mono text-sm overflow-x-auto custom-scrollbar shadow-inner max-h-64">
-                                <pre id="page-content" class="text-slate-300"></pre>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Batch Ops Card -->
-                <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                        <div class="flex items-center gap-2">
-                            <span class="w-1.5 h-4 bg-orange-500 rounded-full"></span>
-                            <h2 class="font-semibold text-slate-800">批量操作</h2>
-                        </div>
-                        <span class="text-xs text-slate-400 font-mono">POST /api/pages</span>
-                    </div>
-                    <div class="p-6">
-                        <div class="space-y-1.5 mb-4">
-                            <div class="flex justify-between items-center">
-                                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">页面列表 (每行一个)</label>
-                                <div class="space-x-1">
-                                    <button onclick="loadPreset('tools')" class="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded hover:bg-slate-200">工具</button>
-                                    <button onclick="loadPreset('blocks')" class="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded hover:bg-slate-200">方块</button>
-                                </div>
-                            </div>
-                            <textarea id="batch-pages" rows="4" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 font-mono focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all resize-none custom-scrollbar" placeholder="钻石&#10;铁锭">钻石
+        <!-- 批量操作测试 -->
+        <section>
+            <h2>批量页面获取测试</h2>
+            <p class="description">同时获取多个页面的内容</p>
+            <div class="form-group">
+                <label for="batch-pages">页面列表 (每行一个):</label>
+                <textarea id="batch-pages" placeholder="钻石&#10;铁锭&#10;金锭&#10;红石">钻石
 铁锭
-金锭</textarea>
-                        </div>
-                        
-                        <div class="flex gap-4 mb-5">
-                            <div class="flex-1 space-y-1.5">
-                                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">格式</label>
-                                <div class="relative">
-                                    <select id="batch-format" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 appearance-none">
-                                        <option value="markdown">Markdown</option>
-                                        <option value="html">HTML</option>
-                                        <option value="wikitext">Wikitext</option>
-                                    </select>
-                                    <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-slate-400 pointer-events-none text-[10px]"></i>
-                                </div>
-                            </div>
-                            <div class="w-24 space-y-1.5">
-                                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">并发数</label>
-                                <input type="number" id="batch-concurrency" value="3" max="5" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500">
-                            </div>
-                        </div>
-
-                        <button onclick="testBatchPages()" class="w-full px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg shadow-sm shadow-orange-200 transition-all active:scale-95">
-                            开始批量获取
-                        </button>
-
-                         <!-- Console Output -->
-                         <div id="batch-result" class="hidden group relative mt-6">
-                            <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                <button onclick="copyResult('batch-result')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-2 py-1 rounded border border-slate-600 backdrop-blur">
-                                    <i class="fa-regular fa-copy mr-1"></i>
-                                </button>
-                            </div>
-                            <div class="bg-slate-900 rounded-lg p-4 font-mono text-sm overflow-x-auto custom-scrollbar shadow-inner max-h-64">
-                                <pre id="batch-content" class="text-slate-300"></pre>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+金锭
+红石</textarea>
             </div>
-        </div>
-
+            <div class="form-group">
+                <label for="batch-format">输出格式:</label>
+                <select id="batch-format">
+                    <option value="markdown">markdown</option>
+                    <option value="html">html</option>
+                    <option value="both">both</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="batch-concurrency">并发数:</label>
+                <input type="number" id="batch-concurrency" value="3" min="1" max="5">
+            </div>
+            <div class="button-group">
+                <button onclick="testBatchPages()">批量获取</button>
+                <button class="secondary" onclick="loadPreset('tools')">预设: 工具</button>
+                <button class="secondary" onclick="loadPreset('blocks')">预设: 方块</button>
+            </div>
+            <div id="batch-result" class="result-container">
+                <div class="result-header">
+                    <span>批量操作结果</span>
+                    <button class="copy-btn" onclick="copyResult('batch-result')">复制</button>
+                </div>
+                <div class="result-content" id="batch-content"></div>
+            </div>
+        </section>
     </main>
-    
-    <footer class="bg-white border-t border-slate-200 mt-12 py-8">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            <p class="text-slate-500 text-sm">© 2026 Minecraft Wiki API Console. Not affiliated with Mojang Studios.</p>
-        </div>
-    </footer>
-
-    <!-- Toast Notification Container -->
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
     <script>
+        // API基础URL
         const API_BASE = window.location.origin;
 
-        /**
-         * Simple syntax highlighting for JSON
-         */
-        function syntaxHighlight(json) {
-            if (typeof json !== 'string') {
-                json = JSON.stringify(json, null, 2);
-            }
-            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-                var cls = 'json-number';
-                if (/^"/.test(match)) {
-                    if (/:$/.test(match)) {
-                        cls = 'json-key';
-                    } else {
-                        cls = 'json-string';
-                    }
-                } else if (/true|false/.test(match)) {
-                    cls = 'json-boolean';
-                } else if (/null/.test(match)) {
-                    cls = 'json-null';
-                }
-                return '<span class="' + cls + '">' + match + '</span>';
-            });
-        }
-
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            
-            // Colors
-            const bgClass = type === 'success' ? 'bg-slate-800' : 'bg-red-600';
-            
-            toast.className = `${bgClass} text-white px-4 py-3 rounded-lg shadow-lg transform transition-all duration-300 translate-y-10 opacity-0 flex items-center gap-3 min-w-[200px]`;
-            toast.innerHTML = `
-                <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'} text-${type === 'success' ? 'emerald-400' : 'white'}"></i>
-                <span class="text-sm font-medium">${message}</span>
-            `;
-            
-            container.appendChild(toast);
-            
-            // Animate in
-            requestAnimationFrame(() => {
-                toast.classList.remove('translate-y-10', 'opacity-0');
-            });
-
-            // Remove
-            setTimeout(() => {
-                toast.classList.add('translate-y-10', 'opacity-0');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
+        // 通用请求函数
         async function makeRequest(url, options = {}) {
             const resultElement = options.resultElement;
             const contentElement = options.contentElement;
 
-            if (resultElement) {
-                resultElement.classList.remove('hidden');
-                // Scroll to result on mobile only
-                if(window.innerWidth < 768) {
-                    resultElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
-            }
-            
-            if (contentElement) {
-                contentElement.innerHTML = '<div class="flex items-center gap-3 text-slate-400 py-4"><div class="loader"></div><span>正在请求 API...</span></div>';
-            }
+            if (resultElement) resultElement.style.display = 'block';
+            if (contentElement) contentElement.innerHTML = '<div class="loading"><div class="spinner"></div>请求中...</div>';
 
             try {
                 const response = await fetch(url, options);
                 const data = await response.json();
                 
                 if (contentElement) {
-                    contentElement.innerHTML = syntaxHighlight(data);
-                }
-                
-                if(response.ok) {
-                   showToast(`请求成功 (${response.status})`);
-                } else {
-                   showToast(`请求返回错误 (${response.status})`, 'error');
+                    contentElement.textContent = JSON.stringify(data, null, 2);
                 }
                 
                 return { success: true, data, status: response.status };
             } catch (error) {
                 if (contentElement) {
-                    contentElement.innerHTML = `<span class="text-red-400">Error: ${error.message}</span>`;
+                    contentElement.textContent = `请求失败: ${error.message}`;
                 }
-                showToast('网络请求失败', 'error');
                 return { success: false, error: error.message };
             }
         }
 
-        // Functions from original logic, mapped to new UI
+        // 健康检查测试
         async function testHealth(endpoint) {
-            await makeRequest(`${API_BASE}${endpoint}`, {
+            const url = `${API_BASE}${endpoint}`;
+            await makeRequest(url, {
                 resultElement: document.getElementById('health-result'),
                 contentElement: document.getElementById('health-content')
             });
         }
 
+        // 搜索测试
         async function testSearch(pretty = false) {
             const keyword = document.getElementById('search-keyword').value;
             const limit = document.getElementById('search-limit').value;
             
             if (!keyword.trim()) {
-                showToast('请输入关键词', 'error');
-                document.getElementById('search-keyword').focus();
+                alert('请输入搜索关键词');
                 return;
             }
 
-            const params = new URLSearchParams({ q: keyword, limit: limit });
+            const params = new URLSearchParams({
+                q: keyword,
+                limit: limit
+            });
+            
             if (pretty) params.append('pretty', 'true');
             
-            await makeRequest(`${API_BASE}/api/search?${params}`, {
+            const url = `${API_BASE}/api/search?${params}`;
+            await makeRequest(url, {
                 resultElement: document.getElementById('search-result'),
                 contentElement: document.getElementById('search-content')
             });
         }
 
+        // 快速搜索
         async function quickSearch(keyword) {
             document.getElementById('search-keyword').value = keyword;
             await testSearch(true);
         }
 
+        // 页面获取测试
         async function testPage(pretty = false) {
             const pageName = document.getElementById('page-name').value;
             const format = document.getElementById('page-format').value;
             
             if (!pageName.trim()) {
-                showToast('请输入页面名称', 'error');
+                alert('请输入页面名称');
                 return;
             }
 
             const params = new URLSearchParams({ format });
             if (pretty) params.append('pretty', 'true');
             
-            await makeRequest(`${API_BASE}/api/page/${encodeURIComponent(pageName)}?${params}`, {
+            const url = `${API_BASE}/api/page/${encodeURIComponent(pageName)}?${params}`;
+            await makeRequest(url, {
                 resultElement: document.getElementById('page-result'),
                 contentElement: document.getElementById('page-content')
             });
         }
 
+        // 快速页面获取
         async function quickPage(pageName) {
             document.getElementById('page-name').value = pageName;
             await testPage(true);
         }
 
+        // 检查页面是否存在
         async function testPageExists() {
             const pageName = document.getElementById('page-name').value;
+            
             if (!pageName.trim()) {
-                showToast('请输入页面名称', 'error');
+                alert('请输入页面名称');
                 return;
             }
-            await makeRequest(`${API_BASE}/api/page/${encodeURIComponent(pageName)}/exists`, {
+            
+            const url = `${API_BASE}/api/page/${encodeURIComponent(pageName)}/exists`;
+            await makeRequest(url, {
                 resultElement: document.getElementById('page-result'),
                 contentElement: document.getElementById('page-content')
             });
         }
 
+        // 测试 Wikitext 格式
+        async function testPageWikitext() {
+            const pageName = document.getElementById('page-name').value;
+            
+            if (!pageName.trim()) {
+                alert('请输入页面名称');
+                return;
+            }
+            
+            const params = new URLSearchParams({ format: 'wikitext' });
+            const url = `${API_BASE}/api/page/${encodeURIComponent(pageName)}?${params}`;
+            await makeRequest(url, {
+                resultElement: document.getElementById('page-result'),
+                contentElement: document.getElementById('page-content')
+            });
+        }
+
+        // 批量页面获取
         async function testBatchPages() {
             const pagesText = document.getElementById('batch-pages').value;
             const format = document.getElementById('batch-format').value;
@@ -583,44 +606,59 @@
             const pages = pagesText.split('\n').map(p => p.trim()).filter(p => p);
             
             if (pages.length === 0) {
-                showToast('列表不能为空', 'error');
+                alert('请输入至少一个页面名称');
                 return;
             }
 
+            const requestBody = {
+                pages,
+                format,
+                concurrency
+            };
+
             await makeRequest(`${API_BASE}/api/pages`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pages, format, concurrency }),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody),
                 resultElement: document.getElementById('batch-result'),
                 contentElement: document.getElementById('batch-content')
             });
         }
 
+        // 加载预设
         function loadPreset(type) {
             const presets = {
                 tools: ['钻石剑', '钻石镐', '钻石斧', '钻石锹'],
                 blocks: ['钻石块', '铁块', '金块', '红石块']
             };
+            
             if (presets[type]) {
                 document.getElementById('batch-pages').value = presets[type].join('\n');
-                showToast(`已加载预设: ${type}`);
             }
         }
 
+        // 复制结果
         function copyResult(containerId) {
             const container = document.getElementById(containerId);
-            // Get text content (strip html tags for clean copy)
-            const content = container.querySelector('pre').textContent;
+            const content = container.querySelector('.result-content').textContent;
             
             navigator.clipboard.writeText(content).then(() => {
-                showToast('内容已复制到剪贴板');
+                const btn = container.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '已复制!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
             }).catch(() => {
-                showToast('复制失败', 'error');
+                alert('复制失败，请手动选择内容复制');
             });
         }
 
-        // Auto-run health check on load for visual feedback
-        document.addEventListener('DOMContentLoaded', () => {
+        // 页面加载完成后执行健康检查
+        document.addEventListener('DOMContentLoaded', function() {
+            // 自动执行一次基础健康检查
             testHealth('/health');
         });
     </script>
