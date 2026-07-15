@@ -50,7 +50,7 @@ describe('Real Network Integration Tests', () => {
       expect(typeof response.data).toBe('string');
 
       // Parse search results
-      const results = parser.parseSearchResults(response.data, keyword);
+      const results = await parser.parseSearchResults(response.data, keyword);
       
       expect(results.success).toBe(true);
       expect(results.data.keyword).toBe(keyword);
@@ -86,7 +86,7 @@ describe('Real Network Integration Tests', () => {
       for (const testCase of testCases) {
         const searchUrl = urlBuilder.buildSearchUrl(testCase.keyword);
         const response = await httpClient.get(searchUrl);
-        const results = parser.parseSearchResults(response.data, testCase.keyword);
+        const results = await parser.parseSearchResults(response.data, testCase.keyword);
         
         expect(results.success).toBe(true);
         expect(results.data.results.length).toBeGreaterThanOrEqual(testCase.expectedMinResults);
@@ -109,7 +109,7 @@ describe('Real Network Integration Tests', () => {
       // Should still get a valid HTTP response
       expect(response.status).toBe(200);
       
-      const results = parser.parseSearchResults(response.data, obscureKeyword);
+      const results = await parser.parseSearchResults(response.data, obscureKeyword);
       expect(results.success).toBe(true);
       expect(results.data.keyword).toBe(obscureKeyword);
       
@@ -133,7 +133,7 @@ describe('Real Network Integration Tests', () => {
       });
       
       const response = await httpClient.get(searchUrl);
-      const results = parser.parseSearchResults(response.data, keyword);
+      const results = await parser.parseSearchResults(response.data, keyword);
       
       expect(results.success).toBe(true);
       expect(results.data.results.length).toBeGreaterThan(0);
@@ -217,7 +217,7 @@ describe('Real Network Integration Tests', () => {
         const response = await httpClient.get(searchUrl);
         expect(response.status).toBe(200);
         
-        const results = parser.parseSearchResults(response.data, keyword);
+        const results = await parser.parseSearchResults(response.data, keyword);
         expect(results.success).toBe(true);
         expect(results.data.keyword).toBe(keyword);
       }
@@ -233,7 +233,7 @@ describe('Real Network Integration Tests', () => {
       const promises = keywords.map(async (keyword) => {
         const searchUrl = urlBuilder.buildSearchUrl(keyword);
         const response = await httpClient.get(searchUrl);
-        return parser.parseSearchResults(response.data, keyword);
+        return await parser.parseSearchResults(response.data, keyword);
       });
       
       const results = await Promise.all(promises);
