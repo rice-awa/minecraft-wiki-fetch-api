@@ -80,7 +80,7 @@ async def get_page(
         params = {"format": format, "useCache": str(useCache).lower()}
         async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
             resp = await client.get(
-                f"{API_BASE}/api/page/{quote(pageName)}",
+                f"{API_BASE}/api/page/{quote(pageName, safe='')}",
                 params=params,
             )
             data = resp.json()
@@ -124,7 +124,7 @@ async def check_page_exists(
     """检查页面是否存在。"""
     try:
         async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
-            resp = await client.get(f"{API_BASE}/api/page/{pageName}/exists")
+            resp = await client.get(f"{API_BASE}/api/page/{quote(pageName, safe='')}/exists")
             data = resp.json()
     except Exception as e:
         return f"检查失败: API 服务不可用 ({e})"
