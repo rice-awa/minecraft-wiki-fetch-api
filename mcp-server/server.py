@@ -56,7 +56,7 @@ async def get_page(
         str,
         Field(
             default="wikitext",
-            description="输出格式：wikitext（默认，最完整，推荐）、markdown、html（仅在 wikitext 模板无法理解时使用）",
+description="**非必要不要传此参数，默认 wikitext 就是最好的。** wikitext 完全保留模板语义；html 仅在 wikitext 模板确实无法理解时使用",
         ),
     ] = "wikitext",
     useCache: Annotated[bool, Field(description="是否使用缓存，默认 true")] = True,
@@ -64,15 +64,14 @@ async def get_page(
 ) -> str:
     """获取 Minecraft 中文 Wiki 页面的内容。
 
-    根据页面名称获取 Wiki 页面的完整内容，支持三种格式。
+    根据页面名称获取 Wiki 页面的完整内容。
 
-    格式选择建议：
-    - wikitext（默认，推荐）：最完整的格式，包含 Wiki 原始标记语言。
-      所有信息框、历史表格、配方等模板数据均以 {{Template}} 形式完整保留。
-      绝大多数情况下应优先使用 wikitext。
-    - markdown：HTML 转 Markdown，适合易读场景，部分复杂模板可能丢失。
-    - html：清洗后的正文 HTML。仅在 wikitext 中某个模板无法理解时使用。非必要不用。"""
-    valid_formats = ("wikitext", "markdown", "html")
+    格式选择：
+    - wikitext（默认）：Wiki 原始标记语言，{{Template}} 完整保留，信息最全。
+    - html：清洗后的正文 HTML。仅当 wikitext 中某个模板语法确实无法理解时才使用。
+
+    wikitext 中遇到不认识的 {{Template}} 时，可用 search_wiki 传 namespaces=[10] 去模板命名空间搜索该模板的文档。"""
+    valid_formats = ("wikitext", "html")
     if format not in valid_formats:
         return f"无效的 format: {format}，可选值: {', '.join(valid_formats)}"
 
@@ -80,7 +79,7 @@ async def get_page(
         params = {"format": format, "useCache": str(useCache).lower()}
         async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
             resp = await client.get(
-                f"{API_BASE}/api/page/{quote(pageName)}",
+                f"{API_BASE}/api/page/{quote(pageName, safe='')}",
                 params=params,
             )
             data = resp.json()
@@ -98,9 +97,7 @@ async def get_page(
 
     if format == "wikitext":
         content = page["content"]["wikitext"]
-    elif format == "markdown":
-        content = page["content"]["markdown"]
-    elif format == "html":
+    else:
         content = page["content"]["html"]
 
     info_lines = [f"# {page['pageName']}", f"URL: {page['url']}"]
@@ -124,7 +121,7 @@ async def check_page_exists(
     """检查页面是否存在。"""
     try:
         async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
-            resp = await client.get(f"{API_BASE}/api/page/{pageName}/exists")
+            resp = await client.get(f"{API_BASE}/api/page/{quote(pageName, safe='')}/exists")
             data = resp.json()
     except Exception as e:
         return f"检查失败: API 服务不可用 ({e})"
