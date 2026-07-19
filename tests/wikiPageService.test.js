@@ -471,13 +471,10 @@ describe('WikiPageService Integration Tests', () => {
     });
 
     describe('error handling', () => {
-        test('should handle API errors gracefully', async () => {
+        test('should propagate network errors in checkPageExists', async () => {
             mockHttpClient.get.mockRejectedValueOnce(new Error('API错误'));
 
-            const result = await service.checkPageExists('钻石');
-
-            expect(result.exists).toBe(false);
-            expect(result.suggestions).toEqual([]);
+            await expect(service.checkPageExists('钻石')).rejects.toThrow('API错误');
         });
 
         test('should handle malformed API responses', async () => {
@@ -494,7 +491,7 @@ describe('WikiPageService Integration Tests', () => {
             const result = await service.getPage('钻石');
 
             expect(result.success).toBe(false);
-            expect(result.error.code).toBe('PAGE_NOT_FOUND');
+            expect(result.error.code).toBe('PAGE_FETCH_ERROR');
         });
     });
 });

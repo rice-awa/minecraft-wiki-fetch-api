@@ -278,8 +278,8 @@ class WikiPageService {
 
       return { exists: false, suggestions };
     } catch (error) {
-      logger.error('页面存在性检查失败', { pageName, error: error.message });
-      return { exists: false, suggestions: [] };
+      logger.error('页面存在性检查网络错误', { pageName, error: error.message });
+      throw error;
     }
   }
 
