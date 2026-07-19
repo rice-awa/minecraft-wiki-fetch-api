@@ -26,14 +26,14 @@ async def search_wiki(
         params: dict = {"q": q, "limit": min(limit, 50)}
         if namespaces:
             params["namespaces"] = ",".join(str(n) for n in namespaces)
-        async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
+        async with httpx.AsyncClient(timeout=60, trust_env=False) as client:
             resp = await client.get(f"{API_BASE}/api/search", params=params)
             data = resp.json()
     except Exception as e:
         return f"搜索失败: API 服务不可用 ({e})"
 
     if not data.get("success"):
-        return f"搜索失败: {data.get('error', {}).get('message', '未知错误')}"
+        return f"搜索失败: {(data.get('error', {}).get('message') or data.get('error', {}).get('code') or '未知错误')}"
 
     results = data["data"]["results"]
     if not results:
@@ -77,7 +77,7 @@ description="**非必要不要传此参数，默认 wikitext 就是最好的。*
 
     try:
         params = {"format": format, "useCache": str(useCache).lower()}
-        async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
+        async with httpx.AsyncClient(timeout=60, trust_env=False) as client:
             resp = await client.get(
                 f"{API_BASE}/api/page/{quote(pageName, safe='')}",
                 params=params,
@@ -91,7 +91,7 @@ description="**非必要不要传此参数，默认 wikitext 就是最好的。*
         code = error.get("code", "")
         if code == "PAGE_NOT_FOUND":
             return f"页面 '{pageName}' 不存在。可尝试使用 search_wiki 搜索正确的页面名称。"
-        return f"获取页面失败: {error.get('message', '未知错误')}"
+        return f"获取页面失败: {(error.get('message') or code or '未知错误')}"
 
     page = data["data"]["page"]
 
@@ -120,14 +120,14 @@ async def check_page_exists(
 ) -> str:
     """检查页面是否存在。"""
     try:
-        async with httpx.AsyncClient(timeout=30, trust_env=False) as client:
+        async with httpx.AsyncClient(timeout=60, trust_env=False) as client:
             resp = await client.get(f"{API_BASE}/api/page/{quote(pageName, safe='')}/exists")
             data = resp.json()
     except Exception as e:
         return f"检查失败: API 服务不可用 ({e})"
 
     if not data.get("success"):
-        return f"检查失败: {data.get('error', {}).get('message', '未知错误')}"
+        return f"检查失败: {(data.get('error', {}).get('message') or data.get('error', {}).get('code') or '未知错误')}"
 
     info = data["data"]
     if info["exists"]:
@@ -183,7 +183,7 @@ async def list_namespaces() -> str:
         return f"获取命名空间失败: {e}"
 
     if not data.get("success"):
-        return "获取命名空间失败"
+        return f"获取命名空间失败: {(data.get('error', {}).get('message') or data.get('error', {}).get('code') or '未知错误')}"
 
     ns = data["data"]["namespaces"]
     lines = ["命名空间映射表：\n"]

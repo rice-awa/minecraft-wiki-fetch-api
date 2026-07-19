@@ -3,31 +3,15 @@ services:
     build: .
     container_name: minecraft-wiki-api
     restart: unless-stopped
-    ports:
-      - "${PORT:-3000}:3000"
+    network_mode: host
     environment:
       - NODE_ENV=production
-      - PORT=3000
-      - HOST=0.0.0.0
-      - WIKI_BASE_URL=${WIKI_BASE_URL:-https://zh.minecraft.wiki}
-      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-10000}
-      - MAX_RETRIES=${MAX_RETRIES:-3}
-      - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW:-60000}
-      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX:-100}
-      - RATE_LIMIT_STORE=${RATE_LIMIT_STORE:-memory}
-      - RATE_LIMIT_SKIP_HEALTH=${RATE_LIMIT_SKIP_HEALTH:-true}
-      - RATE_LIMIT_ANONYMOUS=${RATE_LIMIT_ANONYMOUS:-50}
-      - RATE_LIMIT_AUTHENTICATED=${RATE_LIMIT_AUTHENTICATED:-200}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
       - LOG_CONSOLE=true
       - LOG_FILE=${LOG_FILE:-false}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
-      - ENABLE_COMPRESSION=${ENABLE_COMPRESSION:-true}
       - AUTO_PORT=${AUTO_PORT:-false}
-      - SEARCH_DEFAULT_LIMIT=${SEARCH_DEFAULT_LIMIT:-10}
-      - SEARCH_MAX_LIMIT=${SEARCH_MAX_LIMIT:-50}
       - API_KEY=${API_KEY:-}
-      - ENDPOINT_PROTECTION_ENABLED=${ENDPOINT_PROTECTION_ENABLED:-true}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=localhost,127.0.0.1
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/health"]
       interval: 30s
@@ -41,17 +25,12 @@ services:
         max-file: "3"
 
   mcp:
-    image: python:3.12-alpine
+    build: ./mcp-server
     container_name: minecraft-wiki-mcp
     restart: unless-stopped
-    ports:
-      - "${MCP_PORT:-3001}:3001"
+    network_mode: host
     environment:
-      - API_BASE_URL=http://app:3000
-    working_dir: /app
-    command: sh -c "pip install -q mcp httpx && python server.py"
-    volumes:
-      - ./mcp-server/server.py:/app/server.py:ro
+      - API_BASE_URL=http://localhost:3000
     depends_on:
       app:
         condition: service_healthy

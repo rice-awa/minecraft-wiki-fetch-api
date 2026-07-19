@@ -40,9 +40,9 @@ const config = {
   // Wiki数据源配置
   wiki: {
     baseUrl: process.env.WIKI_BASE_URL || 'https://zh.minecraft.wiki',
-    requestTimeout: parseInt(process.env.REQUEST_TIMEOUT) || 10000,
+    requestTimeout: parseInt(process.env.REQUEST_TIMEOUT) || 60000,
     maxRetries: parseInt(process.env.MAX_RETRIES) || 3,
-    userAgent: process.env.USER_AGENT || 'MinecraftWikiAPI/1.0.0 (https://github.com/your-repo/minecraft-wiki-api)',
+    userAgent: process.env.USER_AGENT || 'MinecraftWikiAPI/1.0.0 (https://github.com/rice-awa/minecraft-wiki-fetch-api)',
   },
 
   // 缓存系统配置
