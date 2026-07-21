@@ -14,14 +14,14 @@ mcp = FastMCP("Minecraft Wiki", host="0.0.0.0", port=3001)
 
 @mcp.tool()
 async def search_wiki(
-    q: Annotated[str, Field(description="搜索关键词，支持中文。例如 '钻石'、'红石'、'命令'")],
+    q: Annotated[str, Field(description="搜索关键词，1-3个游戏名词为佳。多关键词会缩小而非扩大范围，因为所有词都需出现在结果页面中。如需多角度搜索，分别调用本工具即可。这不是搜索引擎，不要堆砌关键词。例：'信标 激活'，而不是 '信标 激活 怎么做 教程 步骤'")],
     limit: Annotated[int, Field(description="返回结果数量，默认 10，最大 50")] = 10,
     namespaces: Annotated[list[int], Field(default=[], description="限定命名空间，数字ID列表。0=Main 10=Template 14=Category 9994=Module。空则使用默认值")] = [],
 ) -> str:
     """搜索 Minecraft 中文 Wiki。
 
-    根据关键词查找匹配的 Wiki 页面，返回标题、URL 和摘要。
-    当你需要了解某个游戏概念、物品、机制时使用此工具。"""
+    用1-3个游戏名词查找匹配的页面。多关键词会缩小范围（所有词须同时出现在结果页面中），
+    如需多角度搜索应分批调用本工具，而非把大量关键词堆在一次查询中。"""
     try:
         params: dict = {"q": q, "limit": min(limit, 50)}
         if namespaces:
