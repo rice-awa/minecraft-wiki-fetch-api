@@ -486,23 +486,51 @@ class PageContentParser {
     // 清理连续的空白元素
     $('p:empty, div:empty, span:empty').remove();
 
-    // 合并连续的相同标签
-    const targets = [];
-    $('p + p, br + br').each((i, el) => targets.push(el));
-    targets.forEach((el) => {
-      const $el = $(el);
-      const $prev = $el.prev();
-      if ($el.length && $prev.length && $el.prop('tagName') === $prev.prop('tagName')) {
-        if ($el.prop('tagName') === 'P') {
-          $prev.append(' ' + $el.html());
-          $el.remove();
-        } else if ($el.prop('tagName') === 'BR') {
-          $el.remove();
-        }
-      }
-    });
+    // 合并连续的相同标签。避免使用 `p + p` / `br + br` 相邻兄弟选择器：
+    // 前面的 replaceWith($el.html()) 可能会让 Cheerio/domutils 的 sibling 链不一致，
+    // css-select 在解析 `br + br` 时会读取到 undefined sibling 并抛出 TypeError。
+    this._mergeConsecutiveParagraphsAndBreaks($);
 
     $content.html($.html());
+  }
+
+  /**
+   * 合并连续的段落并移除重复换行。
+   * 通过父节点的 children 手动遍历，避免依赖 Cheerio 的相邻兄弟选择器。
+   * @private
+   */
+  _mergeConsecutiveParagraphsAndBreaks($) {
+    $('body, .mw-parser-output, div, section, article, td, th, li, blockquote').each((i, parent) => {
+      const children = [...(parent.children || [])];
+      let previousElement = null;
+
+      children.forEach((child) => {
+        if (!child || child.type !== 'tag') {
+          return;
+        }
+
+        const tagName = child.name && child.name.toLowerCase();
+
+        if (tagName === 'p' && previousElement && previousElement.name === 'p') {
+          const $previous = $(previousElement);
+          const currentHtml = $(child).html();
+
+          if (currentHtml) {
+            $previous.append(` ${currentHtml}`);
+          }
+
+          $(child).remove();
+          return;
+        }
+
+        if (tagName === 'br' && previousElement && previousElement.name === 'br') {
+          $(child).remove();
+          return;
+        }
+
+        previousElement = child;
+      });
+    });
   }
 
   /**
