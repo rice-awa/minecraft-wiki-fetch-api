@@ -1,4 +1,4 @@
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 
 WORKDIR /app
 
@@ -11,7 +11,5 @@ RUN HTTPS_PROXY=$HTTPS_PROXY HTTP_PROXY=$HTTP_PROXY NO_PROXY=$NO_PROXY \
     pip install --no-cache-dir -r requirements.txt
 
 COPY server.py .
-
-EXPOSE 3001
 
 CMD ["python", "server.py"]

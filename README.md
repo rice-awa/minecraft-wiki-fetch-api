@@ -47,8 +47,11 @@ docker compose up -d
 - `http://localhost:3001/mcp` — MCP 服务器
 
 ```bash
-# 自定义端口
+# 自定义 API 端口（MCP 会自动跟随）
 PORT=8080 docker compose up -d
+
+# 自定义 MCP 端口
+MCP_PORT=8081 docker compose up -d
 
 # 或创建 .env 文件
 echo "PORT=8080" > .env
@@ -68,9 +71,10 @@ Docker 环境下，部分变量默认值有所调整以适应容器化场景：
 
 | 变量名 | Docker 默认值 | 说明 |
 | --- | --- | --- |
+| `PORT` | `3000` | REST API 监听端口，MCP 的 `API_BASE_URL` 自动跟随 |
+| `MCP_PORT` | `3001` | MCP 服务器监听端口 |
 | `NODE_ENV` | `production` | 运行环境 |
 | `LOG_FILE` | `false` | 容器内建议关闭文件日志，输出到 stdout |
-| `RATE_LIMIT_STORE` | `memory` | 单机部署使用内存限流 |
 | `AUTO_PORT` | `false` | 容器端口固定，无需自动选择 |
 
 其余变量与下方环境变量表一致，通过 `docker compose` 的 `environment` 或 `docker run -e` 设置。
