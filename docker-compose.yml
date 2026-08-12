@@ -25,7 +25,13 @@ services:
         max-file: "3"
 
   mcp:
-    build: ./mcp-server
+    build:
+      context: ./mcp-server
+      network: host
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
     container_name: minecraft-wiki-mcp
     restart: unless-stopped
     network_mode: host
