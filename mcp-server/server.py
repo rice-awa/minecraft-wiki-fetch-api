@@ -4,12 +4,13 @@ import os
 from typing import Annotated
 from urllib.parse import quote
 import httpx
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 from pydantic import Field
 
 API_BASE = os.getenv("API_BASE_URL", "http://localhost:3000")
+MCP_PORT = int(os.getenv("MCP_PORT", "3001"))
 
-mcp = FastMCP("Minecraft Wiki", host="0.0.0.0", port=3001)
+mcp = MCPServer("Minecraft Wiki")
 
 
 @mcp.tool()
@@ -193,4 +194,4 @@ async def list_namespaces() -> str:
 
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http")
+    mcp.run(transport="streamable-http", host="0.0.0.0", port=MCP_PORT)
