@@ -133,6 +133,19 @@ class HtmlToMarkdownConverter {
      * @private
      */
     addCustomRules() {
+        // 代码块处理规则。Wiki 的语法高亮通常将内容放在 <pre> 中，
+        // 但不一定嵌套 <code> 标签；Turndown 在后一种结构之外会把内容当作普通
+        // 文本并转义 Markdown 字符。直接读取 textContent 可保留代码原貌。
+        this.turndownService.addRule('preformattedCodeBlock', {
+            filter: ['pre'],
+            replacement: (content, node) => {
+                const code = this._unescapeCodeBlock(node.textContent);
+                const fence = this._getCodeFence(code);
+
+                return `\n\n${fence}\n${code}\n${fence}\n\n`;
+            }
+        });
+
         // 信息框处理规则
         if (this.options.wikiElements.preserveInfoboxes) {
             this.turndownService.addRule('infobox', {
@@ -298,6 +311,25 @@ class HtmlToMarkdownConverter {
         processed = this._fixChinesePunctuation(processed);
 
         return processed.trim();
+    }
+
+    /**
+     * 移除 Turndown 为 Markdown 语法字符添加的转义符。
+     * @private
+     */
+    _unescapeCodeBlock(code) {
+        return code.replace(/\\([\\`*_[\]{}()#+\-.!|>])/g, '$1');
+    }
+
+    /**
+     * 选择比代码内容中任意反引号序列更长的围栏，避免提前结束代码块。
+     * @private
+     */
+    _getCodeFence(code) {
+        const backtickRuns = code.match(/`+/g) || [];
+        const longestRun = backtickRuns.reduce((longest, run) => Math.max(longest, run.length), 0);
+
+        return '`'.repeat(Math.max(3, longestRun + 1));
     }
 
     /**
