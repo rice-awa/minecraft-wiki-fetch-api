@@ -249,6 +249,27 @@ describe('HtmlToMarkdownConverter', () => {
             expect(markdown).toContain('[外部链接](https://example.com)');
         });
 
+        test('should convert Wiki preformatted code to an unescaped fenced code block', () => {
+            const html = `
+            <div class="mw-highlight mw-highlight-lang-json">
+                <pre><span class="p">{</span><span class="nt">"id"</span>: <span class="s">"minecraft:stone"</span>, <span class="nt">"values"</span>: \\[1, 2\\]}</pre>
+            </div>`;
+
+            const result = converter.convertToMarkdown(html);
+
+            expect(result.success).toBe(true);
+            expect(result.data.markdown).toBe('```\n{"id": "minecraft:stone", "values": [1, 2]}\n```');
+            expect(result.data.markdown).not.toContain('\\\\[');
+            expect(result.data.markdown).not.toContain('\\\\]');
+        });
+
+        test('should use a longer fence when code contains triple backticks', () => {
+            const result = converter.convertToMarkdown('<pre>```js\nconsole.log(1);\n```</pre>');
+
+            expect(result.success).toBe(true);
+            expect(result.data.markdown).toBe('````\n```js\nconsole.log(1);\n```\n````');
+        });
+
         test('should generate conversion statistics', () => {
             const html = createSimpleHtml();
             const result = converter.convertToMarkdown(html);
