@@ -216,6 +216,22 @@ describe('HtmlToMarkdownConverter', () => {
             expect(markdown).toContain('| 数据1 | 数据2 |');
         });
 
+        test('should keep table rows contiguous', () => {
+            const html = `
+            <table class="wikitable">
+                <tr><th>列1</th><th>列2</th></tr>
+                <tr><td>数据1</td><td>数据2</td></tr>
+            </table>
+            `;
+
+            const result = converter.convertToMarkdown(html);
+
+            expect(result.success).toBe(true);
+            expect(result.data.markdown).toBe(
+                '| 列1 | 列2 |\n| --- | --- |\n| 数据1 | 数据2 |'
+            );
+        });
+
         test('should handle Chinese punctuation correctly', () => {
             const html = createChinesePunctuationHtml();
             const result = converter.convertToMarkdown(html);
