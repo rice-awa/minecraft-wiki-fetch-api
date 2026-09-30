@@ -495,9 +495,10 @@ class HtmlToMarkdownConverter {
      * @private
      */
     _fixTableFormatting(markdown) {
-        // 确保表格前后有空行
-        return markdown.replace(/([^\n])\n\|/g, '$1\n\n|')
-                      .replace(/\|\n([^\n|])/g, '|\n\n$1');
+        // 仅在完整表格块的前后添加空行，避免将连续的表格行拆开。
+        return markdown
+            .replace(/^([^\n|][^\n]*)\n(\|[^\n]*(?:\n\|[^\n]*)*)/gm, '$1\n\n$2')
+            .replace(/^(\|[^\n]*(?:\n\|[^\n]*)*)\n([^\n|])/gm, '$1\n\n$2');
     }
 
     /**
