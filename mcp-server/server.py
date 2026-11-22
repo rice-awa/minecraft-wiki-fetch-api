@@ -62,6 +62,10 @@ description="**非必要不要传此参数，默认 wikitext 就是最好的。*
     ] = "wikitext",
     useCache: Annotated[bool, Field(description="是否使用缓存，默认 true")] = True,
     includeMetadata: Annotated[bool, Field(description="是否包含元数据，默认 true")] = True,
+    followRedirect: Annotated[bool, Field(description="是否跟随重定向，默认 true。false 时返回重定向页自身内容（wikitext 为 #REDIRECT 源码）")] = True,
+    title: Annotated[str | None, Field(description="只获取该标题（章节，含子章节）下的内容，传标题文本且不含 == 符号，例如 '获取'。可用 get_page_toc 查看全部标题")] = None,
+    offset: Annotated[int, Field(description="从内容的第几行开始返回，默认 0", ge=0)] = 0,
+    limit: Annotated[int, Field(description="最多返回的行数，默认 500，最大 5000；0 表示不限制", ge=0, le=5000)] = 500,
 ) -> str:
     """获取 Minecraft 中文 Wiki 页面的内容。
 
@@ -71,13 +75,24 @@ description="**非必要不要传此参数，默认 wikitext 就是最好的。*
     - wikitext（默认）：Wiki 原始标记语言，{{Template}} 完整保留，信息最全。
     - html：清洗后的正文 HTML。仅当 wikitext 中某个模板语法确实无法理解时才使用。
 
-    wikitext 中遇到不认识的 {{Template}} 时，可用 search_wiki 传 namespaces=[10] 去模板命名空间搜索该模板的文档。"""
+    wikitext 中遇到不认识的 {{Template}} 时，可用 search_wiki 传 namespaces=[10] 去模板命名空间搜索该模板的文档。
+
+    读取大页面时：
+    - 先用 get_page_toc 查看章节目录
+    - 用 title 只读取某一章节（含子章节）
+    - 章节仍然很大时，用 offset/limit 按行分片"""
     valid_formats = ("wikitext", "html")
     if format not in valid_formats:
         return f"无效的 format: {format}，可选值: {', '.join(valid_formats)}"
 
     try:
-        params = {"format": format, "useCache": str(useCache).lower()}
+        params = {
+            "format": format,
+            "useCache": str(useCache).lower(),
+            "followRedirect": str(followRedirect).lower(),
+        }
+        if title:
+            params["title"] = title
         async with httpx.AsyncClient(timeout=60, trust_env=False) as client:
             resp = await client.get(
                 f"{API_BASE}/api/page/{quote(pageName, safe='')}",
@@ -92,6 +107,12 @@ description="**非必要不要传此参数，默认 wikitext 就是最好的。*
         code = error.get("code", "")
         if code == "PAGE_NOT_FOUND":
             return f"页面 '{pageName}' 不存在。可尝试使用 search_wiki 搜索正确的页面名称。"
+        if code == "SECTION_NOT_FOUND":
+            available = (error.get("details") or {}).get("availableTitles") or []
+            message = f"页面 '{pageName}' 中未找到标题 '{title}'。可先用 get_page_toc 查看章节目录。"
+            if available:
+                message += "\n可用标题: " + "、".join(available[:30])
+            return message
         return f"获取页面失败: {(error.get('message') or code or '未知错误')}"
 
     page = data["data"]["page"]
@@ -101,18 +122,96 @@ description="**非必要不要传此参数，默认 wikitext 就是最好的。*
     else:
         content = page["content"]["html"]
 
+    # 按行切片
+    slice_note = ""
+    if offset or limit:
+        lines = content.split("\n")
+        total = len(lines)
+        start = min(offset, total)
+        end = min(start + limit, total) if limit else total
+        selected = lines[start:end]
+        content = "\n".join(selected)
+        if selected:
+            end_line = start + len(selected)
+            slice_note = f"[切片] 第 {start + 1}-{end_line} 行 / 共 {total} 行"
+            if end < total:
+                slice_note += f"；继续读取请传 offset={end_line}"
+        else:
+            slice_note = f"[切片] offset={offset} 超出内容范围（共 {total} 行）"
+
     info_lines = [f"# {page['pageName']}", f"URL: {page['url']}"]
+
+    redirect = page.get("redirect")
+    if redirect:
+        info_lines.append(f"重定向: {redirect.get('from')} → {redirect.get('to')}")
+
+    section = page.get("section")
+    if section:
+        number = section.get("number") or ""
+        info_lines.append(f"章节: {number} {section.get('title', '')}（含子章节）")
 
     if includeMetadata:
         meta = page.get("meta", {})
-        info_lines.append(
-            f"格式: {format}  |  字数: {meta.get('wordCount', 'N/A')}  |  段落: {meta.get('sectionCount', 'N/A')}"
-        )
+        info_lines.append(f"格式: {format}  |  字数: {meta.get('wordCount', 'N/A')}")
     else:
         info_lines.append(f"格式: {format}")
 
     info_lines.extend(["", content])
+    if slice_note:
+        info_lines.extend(["", "---", slice_note])
     return "\n".join(info_lines)
+
+
+@mcp.tool()
+async def get_page_toc(
+    pageName: Annotated[str, Field(description="页面名称，支持中文。例如 '信标'、'命令'")],
+    useCache: Annotated[bool, Field(description="是否使用缓存，默认 true")] = True,
+    followRedirect: Annotated[bool, Field(description="是否跟随重定向，默认 true")] = True,
+) -> str:
+    """获取页面的章节目录。
+
+    返回每个章节的层级、标题与编号。先用本工具确定目录，再用 get_page 的 title 参数
+    只读取某一章节（含子章节），章节仍然很大时配合 offset/limit 分片。"""
+    try:
+        async with httpx.AsyncClient(timeout=60, trust_env=False) as client:
+            resp = await client.get(
+                f"{API_BASE}/api/page/{quote(pageName, safe='')}/toc",
+                params={
+                    "useCache": str(useCache).lower(),
+                    "followRedirect": str(followRedirect).lower(),
+                },
+            )
+            data = resp.json()
+    except Exception as e:
+        return f"获取目录失败: API 服务不可用 ({e})"
+
+    if not data.get("success"):
+        error = data.get("error", {})
+        code = error.get("code", "")
+        if code == "PAGE_NOT_FOUND":
+            return f"页面 '{pageName}' 不存在。可尝试使用 search_wiki 搜索正确的页面名称。"
+        return f"获取目录失败: {(error.get('message') or code or '未知错误')}"
+
+    toc = data.get("data", {})
+    sections = toc.get("sections") or []
+    page_title = toc.get("pageName") or pageName
+    redirect = toc.get("redirect")
+    redirect_note = (
+        f"（重定向: {redirect.get('from')} → {redirect.get('to')}）" if redirect else ""
+    )
+
+    if not sections:
+        return f"页面 '{page_title}' 没有章节标题（内容可能很短，可直接读取全文）。{redirect_note}"
+
+    lines = [f"# {page_title} 目录（{len(sections)} 个章节）{redirect_note}", ""]
+    for section in sections:
+        level = section.get("level") or 2
+        indent = "  " * max(0, level - 2)
+        number = section.get("number") or ""
+        title = section.get("title") or ""
+        lines.append(f"{indent}- [{number}] {title}")
+    lines.extend(["", "用 get_page(title=...) 只读取某一章节（含子章节）。"])
+    return "\n".join(lines)
 
 
 @mcp.tool()

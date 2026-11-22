@@ -20,6 +20,8 @@ class PageController {
      * 
      * 查询参数:
      * - format: 输出格式 (可选: html, markdown, both, 默认both)
+     * - title: 只返回该标题（章节，含子章节）下的内容 (可选)
+     * - followRedirect: 是否跟随重定向 (可选: true/false, 默认true)
      * - useCache: 是否使用缓存 (可选: true/false, 默认true)
      * - includeMetadata: 是否包含元数据 (可选: true/false, 默认true)
      */
@@ -34,13 +36,15 @@ class PageController {
             }
 
             const { pageName } = validation.params;
-            const { format, useCache, includeMetadata } = validation.query;
+            const { format, useCache, includeMetadata, title, followRedirect } = validation.query;
 
             // 记录请求日志
             logger.info('页面请求', {
                 pageName,
                 format,
                 useCache,
+                title,
+                followRedirect,
                 ip: req.ip,
                 userAgent: req.get('User-Agent')
             });
@@ -49,7 +53,9 @@ class PageController {
             const pageResult = await this.pageService.getPage(pageName, {
                 format,
                 useCache,
-                includeMetadata
+                includeMetadata,
+                title,
+                followRedirect
             });
 
             const duration = Date.now() - startTime;
@@ -221,6 +227,73 @@ class PageController {
     }
 
     /**
+     * 获取页面章节目录
+     * GET /api/page/:pageName/toc
+     *
+     * 路径参数:
+     * - pageName: 页面名称 (必需)
+     *
+     * 查询参数:
+     * - useCache: 是否使用缓存 (可选: true/false, 默认true)
+     * - followRedirect: 是否跟随重定向 (可选: true/false, 默认true)
+     */
+    async getPageToc(req, res) {
+        const startTime = Date.now();
+
+        try {
+            const { pageName } = req.params;
+
+            if (!pageName || typeof pageName !== 'string') {
+                return this.sendErrorResponse(res, 400, 'INVALID_PARAMETERS', '页面名称无效');
+            }
+
+            const decodedPageName = decodeURIComponent(pageName);
+            const useCache = req.query.useCache !== 'false';
+            const followRedirect = req.query.followRedirect !== 'false';
+
+            logger.info('页面目录请求', {
+                pageName: decodedPageName,
+                useCache,
+                followRedirect,
+                ip: req.ip
+            });
+
+            const tocResult = await this.pageService.getPageToc(decodedPageName, {
+                useCache,
+                followRedirect
+            });
+            const duration = Date.now() - startTime;
+
+            if (tocResult.success) {
+                return res.json({
+                    success: true,
+                    data: tocResult.data,
+                    metadata: {
+                        requestTime: duration,
+                        timestamp: new Date().toISOString()
+                    }
+                });
+            }
+
+            return this.sendErrorResponse(
+                res,
+                this.getStatusCodeFromError(tocResult.error.code),
+                tocResult.error.code,
+                tocResult.error.message,
+                tocResult.error.details
+            );
+        } catch (error) {
+            logger.error('页面目录接口异常', {
+                error: error.message,
+                params: req.params,
+                duration: Date.now() - startTime
+            });
+
+            return this.sendErrorResponse(res, 500, 'INTERNAL_SERVER_ERROR', '目录服务暂时不可用');
+        }
+    }
+
+    /**
      * 检查页面是否存在
      * GET /api/page/:pageName/exists
      */
@@ -361,6 +434,28 @@ class PageController {
             validatedQuery.includeMetadata = true;
         }
 
+        // 验证章节标题
+        if (query.title !== undefined) {
+            if (typeof query.title !== 'string' || query.title.trim().length === 0) {
+                errors.push('title参数必须是非空字符串');
+            } else {
+                validatedQuery.title = query.title.trim();
+            }
+        }
+
+        // 验证重定向跟随选项
+        if (query.followRedirect !== undefined) {
+            if (query.followRedirect === 'true' || query.followRedirect === true) {
+                validatedQuery.followRedirect = true;
+            } else if (query.followRedirect === 'false' || query.followRedirect === false) {
+                validatedQuery.followRedirect = false;
+            } else {
+                errors.push('followRedirect参数必须是true或false');
+            }
+        } else {
+            validatedQuery.followRedirect = true;
+        }
+
         return {
             isValid: errors.length === 0,
             errors,
@@ -436,12 +531,14 @@ class PageController {
     getStatusCodeFromError(errorCode) {
         const statusMap = {
             'PAGE_NOT_FOUND': 404,
+            'SECTION_NOT_FOUND': 404,
             'INVALID_PARAMETERS': 400,
             'HTML_FETCH_ERROR': 502,
             'PARSE_ERROR': 500,
             'CONVERSION_ERROR': 500,
             'PAGE_FETCH_ERROR': 500,
-            'SOURCE_FETCH_ERROR': 500
+            'SOURCE_FETCH_ERROR': 500,
+            'TOC_FETCH_ERROR': 500
         };
 
         return statusMap[errorCode] || 500;

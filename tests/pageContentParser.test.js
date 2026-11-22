@@ -117,7 +117,7 @@ describe('PageContentParser', () => {
     describe('constructor', () => {
         test('should initialize with default options', () => {
             const options = parser.getOptions();
-            expect(options.contentSelector).toBe('#mw-content-text .mw-parser-output');
+            expect(options.contentSelector).toBe('.mw-parser-output');
             expect(options.removeSelectors).toContain('.mw-editsection');
             expect(options.preserveSelectors).toContain('.infobox');
         });
@@ -155,11 +155,12 @@ describe('PageContentParser', () => {
             expect(result.success).toBe(true);
             
             const { components } = result.data.content;
-            expect(components.sections).toHaveLength(3); // h2获取, h3开采, h2用途
             expect(components.images).toHaveLength(2); // 信息框图片 + 缩略图
             expect(components.tables).toHaveLength(1);
             expect(components.infoboxes).toHaveLength(1);
-            expect(components.toc).toBeTruthy();
+            // 章节/目录数据统一由 /toc 接口提供，解析器不再提取
+            expect(components.sections).toBeUndefined();
+            expect(components.toc).toBeUndefined();
         });
 
         test('should clean unwanted elements', () => {
@@ -234,9 +235,10 @@ describe('PageContentParser', () => {
             const { meta } = result.data;
             expect(meta.imageCount).toBe(2);
             expect(meta.tableCount).toBe(1);
-            expect(meta.sectionCount).toBe(3);
             expect(meta.wordCount).toBeGreaterThan(0);
             expect(meta.processingTime).toBeTruthy();
+            // 章节统计由 /toc 接口提供
+            expect(meta.sectionCount).toBeUndefined();
         });
 
         test('should handle empty content gracefully', () => {
@@ -245,7 +247,7 @@ describe('PageContentParser', () => {
 
             expect(result.success).toBe(true);
             expect(result.data.title).toBe('空页面');
-            expect(result.data.content.components.sections).toHaveLength(0);
+            expect(result.data.content.components.images).toHaveLength(0);
         });
 
         test('should reject invalid HTML', () => {
@@ -285,20 +287,6 @@ describe('PageContentParser', () => {
     });
 
     describe('content extraction', () => {
-        test('should extract sections with correct hierarchy', () => {
-            const html = createMockWikiPageHtml();
-            const result = parser.parsePageContent(html);
-
-            expect(result.success).toBe(true);
-            
-            const sections = result.data.content.components.sections;
-            expect(sections[0].level).toBe(2);
-            expect(sections[0].text).toBe('获取');
-            expect(sections[0].id).toBe('获取');
-            expect(sections[1].level).toBe(3);
-            expect(sections[1].text).toBe('开采');
-        });
-
         test('should extract table information', () => {
             const html = createMockWikiPageHtml();
             const result = parser.parsePageContent(html);
@@ -310,19 +298,6 @@ describe('PageContentParser', () => {
             expect(tables[0].caption).toBe('钻石工具');
             expect(tables[0].rowCount).toBe(2); // header + 1 data row
             expect(tables[0].hasHeader).toBe(true);
-        });
-
-        test('should extract TOC correctly', () => {
-            const html = createMockWikiPageHtml();
-            const result = parser.parsePageContent(html);
-
-            expect(result.success).toBe(true);
-            
-            const toc = result.data.content.components.toc;
-            expect(toc).toBeTruthy();
-            expect(toc.items).toHaveLength(2);
-            expect(toc.items[0].text).toBe('1 获取');
-            expect(toc.items[0].href).toBe('https://zh.minecraft.wiki#获取');
         });
 
         test('should extract text content without HTML', () => {

@@ -178,6 +178,26 @@ curl "https://your-api.vercel.app/api/pages?api_key=your-api-key"
 参数：
 
 - `format`（可选）：`html` / `markdown` / `both` / `wikitext`
+- `title`（可选）：只返回该标题（章节，含子章节）下的内容，支持所有格式
+- `followRedirect`（可选）：`true/false`，默认 `true`；`false` 时返回重定向页自身内容
+- `useCache`（可选）：`true/false`，默认 `true`
+- `includeMetadata`（可选）：`true/false`，默认 `true`
+- `pretty`（可选）：`true/false`
+
+示例：
+
+- `GET /api/page/信标?format=wikitext&title=获取`
+- `GET /api/page/命令?format=wikitext&title=用法`
+- `GET /api/page/时间?format=wikitext&followRedirect=false`
+
+### `GET /api/page/:pageName/toc`
+
+返回页面章节目录（层级、标题、编号、锚点），数据来自 MediaWiki API 的 `sections`。
+
+参数：
+
+- `followRedirect`（可选）：`true/false`，默认 `true`
+- `useCache`（可选）：`true/false`，默认 `true`
 - `pretty`（可选）：`true/false`
 
 ### `POST /api/pages`

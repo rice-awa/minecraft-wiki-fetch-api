@@ -263,7 +263,7 @@ function validatePageParams(req, res, next) {
     try {
         const validator = new ParamValidator();
         const { pageName } = req.params;
-        const { format, useCache, includeMetadata, pretty } = req.query;
+        const { format, useCache, includeMetadata, pretty, title, followRedirect } = req.query;
 
         // 验证页面名称
         validator
@@ -283,6 +283,52 @@ function validatePageParams(req, res, next) {
         // 验证元数据选项
         if (includeMetadata !== undefined) {
             validator.boolean(includeMetadata, '元数据选项 (includeMetadata)');
+        }
+
+        // 验证JSON格式化参数
+        if (pretty !== undefined) {
+            validator.enum(pretty, 'JSON格式化 (pretty)', ['true', 'false', '1', '0', 'yes', 'no'], false);
+        }
+
+        // 验证章节标题参数
+        if (title !== undefined) {
+            validator.string(title, '章节标题 (title)', { minLength: 1, maxLength: 255 });
+        }
+
+        // 验证重定向跟随选项
+        if (followRedirect !== undefined) {
+            validator.boolean(followRedirect, '重定向跟随 (followRedirect)');
+        }
+
+        validator.validate();
+        next();
+    } catch (error) {
+        next(error);
+    }
+}
+
+/**
+ * 页面目录参数验证中间件
+ */
+function validatePageTocParams(req, res, next) {
+    try {
+        const validator = new ParamValidator();
+        const { pageName } = req.params;
+        const { useCache, pretty, followRedirect } = req.query;
+
+        // 验证页面名称
+        validator
+            .required(pageName, '页面名称')
+            .string(pageName, '页面名称', { minLength: 1, maxLength: 255 });
+
+        // 验证缓存选项
+        if (useCache !== undefined) {
+            validator.boolean(useCache, '缓存选项 (useCache)');
+        }
+
+        // 验证重定向跟随选项
+        if (followRedirect !== undefined) {
+            validator.boolean(followRedirect, '重定向跟随 (followRedirect)');
         }
 
         // 验证JSON格式化参数
@@ -440,6 +486,7 @@ module.exports = {
     ParamValidator,
     validateSearchParams,
     validatePageParams,
+    validatePageTocParams,
     validateBatchPageParams,
     validatePaginationParams,
     validateContentType,

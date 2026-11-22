@@ -6,7 +6,7 @@
 const express = require('express');
 const PageController = require('../controllers/pageController');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { validatePageParams, validateBatchPageParams, validateContentType } = require('../middleware/validation');
+const { validatePageParams, validatePageTocParams, validateBatchPageParams, validateContentType } = require('../middleware/validation');
 const { conditionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -21,6 +21,8 @@ const pageController = new PageController();
  * 
  * 查询参数:
  * - format: 输出格式 (可选: html, markdown, both, 默认both)
+ * - title: 只返回该标题（章节，含子章节）下的内容 (可选)
+ * - followRedirect: 是否跟随重定向 (可选: true/false, 默认true)
  * - useCache: 是否使用缓存 (可选: true/false, 默认true)
  * - includeMetadata: 是否包含元数据 (可选: true/false, 默认true)
  * - pretty: JSON格式化 (可选: true/false/1/0/yes/no, 默认false)
@@ -72,9 +74,30 @@ router.post('/',
  * GET /api/page/钻石/exists
  * GET /api/page/%E9%92%BB%E7%9F%B3/exists
  */
-router.get('/:pageName/exists', 
+router.get('/:pageName/exists',
     asyncHandler(async (req, res) => {
         await pageController.checkPageExists(req, res);
+    })
+);
+
+/**
+ * GET /api/page/:pageName/toc
+ * 获取页面章节目录
+ *
+ * 路径参数:
+ * - pageName: 页面名称 (必需, URL编码)
+ *
+ * 查询参数:
+ * - useCache: 是否使用缓存 (可选: true/false, 默认true)
+ *
+ * 示例:
+ * GET /api/page/信标/toc
+ * GET /api/page/%E4%BF%A1%E6%A0%87/toc
+ */
+router.get('/:pageName/toc',
+    validatePageTocParams,
+    asyncHandler(async (req, res) => {
+        await pageController.getPageToc(req, res);
     })
 );
 

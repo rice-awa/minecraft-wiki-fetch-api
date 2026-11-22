@@ -56,18 +56,14 @@ async function testPageService() {
                 if (data.meta) {
                     console.log(`📊 统计信息:`);
                     console.log(`   - 词数: ${data.meta.wordCount}`);
-                    console.log(`   - 章节数: ${data.meta.sectionCount}`);
                     console.log(`   - 图片数: ${data.meta.imageCount}`);
                     console.log(`   - 表格数: ${data.meta.tableCount}`);
                 }
-                
+
                 // 显示内容组件
                 if (data.content && data.content.components) {
                     const comp = data.content.components;
                     console.log(`🔧 内容组件:`);
-                    if (comp.sections.length > 0) {
-                        console.log(`   - 章节: ${comp.sections.map(s => s.text).slice(0, 3).join(', ')}${comp.sections.length > 3 ? '...' : ''}`);
-                    }
                     if (comp.infoboxes.length > 0) {
                         console.log(`   - 信息框: ${comp.infoboxes.length}个`);
                     }

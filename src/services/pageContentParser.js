@@ -10,8 +10,8 @@ class PageContentParser {
   constructor(options = {}) {
     // 解析配置
     this.options = {
-      // 主要内容选择器
-      contentSelector: '#mw-content-text .mw-parser-output',
+      // 主要内容选择器（完整页面与 parse API 正文片段共用此锚点）
+      contentSelector: '.mw-parser-output',
 
       // 要移除的元素选择器
       removeSelectors: [
@@ -38,6 +38,7 @@ class PageContentParser {
         // 用 :not(.wikitable) 排除表格，只移除非表格元素上的 pixel-image
         '.pixel-image:not(.wikitable)', // 像素图片容器（排除表格）
         'link[rel="mw-deduplicated-inline-style"]', // 重复样式链接
+        'link[rel^="mw:"]', // 解析器属性链接（如 mw:PageProp/redirect）
         '.cite-bracket', // 引用括号
         // 注意：.nowrap 不能直接 remove()，内容包裹在里面的命令名等关键文本也会被删掉，
         // 改为在 _simplifyComplexTags 中用 unwrap 处理。见 _cleanContent 后的 _simplifyComplexTags 调用。
@@ -149,7 +150,6 @@ class PageContentParser {
             wordCount: this._countWords(textContent),
             imageCount: components.images.length,
             tableCount: components.tables.length,
-            sectionCount: components.sections.length,
             processingTime: Date.now(),
           },
         },
@@ -186,20 +186,31 @@ class PageContentParser {
    */
   _extractBasicInfo($, pageInfo) {
     const title = $('#firstHeading').text().trim() || pageInfo.title || '';
-    const subtitle = $('#contentSub').text().trim() || '';
+    const subtitle = $('#contentSub').text().trim() || pageInfo.subtitle || '';
 
-    // 提取页面分类
+    // 提取页面分类：优先使用外部传入（parse API 的 categories），否则从页面框架提取
     const categories = [];
-    $('#mw-normal-catlinks a[title]').each((i, el) => {
-      const categoryName = $(el).text().trim();
-      const categoryUrl = $(el).attr('href');
-      if (categoryName) {
-        categories.push({
-          name: categoryName,
-          url: this._normalizeUrl(categoryUrl),
-        });
+    if (Array.isArray(pageInfo.categories) && pageInfo.categories.length > 0) {
+      for (const name of pageInfo.categories) {
+        if (name) {
+          categories.push({
+            name,
+            url: this._normalizeUrl('/w/' + encodeURIComponent('Category:' + name)),
+          });
+        }
       }
-    });
+    } else {
+      $('#mw-normal-catlinks a[title]').each((i, el) => {
+        const categoryName = $(el).text().trim();
+        const categoryUrl = $(el).attr('href');
+        if (categoryName) {
+          categories.push({
+            name: categoryName,
+            url: this._normalizeUrl(categoryUrl),
+          });
+        }
+      });
+    }
 
     // 提取页面语言链接
     const languages = [];
@@ -245,7 +256,7 @@ class PageContentParser {
       }
     }
 
-    return $content;
+    return $content.first();
   }
 
   /**
@@ -257,6 +268,10 @@ class PageContentParser {
     this.options.removeSelectors.forEach((selector) => {
       $content.find(selector).remove();
     });
+
+    // 移除 HTML 注释（含 NewPP 解析性能报告、解析缓存信息等噪音）
+    $content.find('*').contents().filter((i, node) => node.type === 'comment').remove();
+    $content.contents().filter((i, node) => node.type === 'comment').remove();
 
     // 简化清理逻辑，只移除明显的空元素（保留 .minetip，title 中的文字仍需保留）
     $content.find('p:empty, div:empty, span:empty').not('.minetip').remove();
@@ -539,31 +554,12 @@ class PageContentParser {
    */
   _extractContentComponents($content) {
     const components = {
-      sections: [],
       images: [],
       tables: [],
       infoboxes: [],
-      toc: null,
     };
 
     const $ = cheerio.load($content.html());
-
-    // 提取章节
-    $('h1, h2, h3, h4, h5, h6').each((i, el) => {
-      const $heading = $(el);
-      const level = parseInt($heading.prop('tagName').substring(1));
-      const text = $heading.text().trim();
-      const id = $heading.attr('id') || '';
-
-      if (text) {
-        components.sections.push({
-          level,
-          text,
-          id,
-          anchor: id ? `#${id}` : '',
-        });
-      }
-    });
 
     // 提取图片
     $('img').each((i, el) => {
@@ -611,21 +607,6 @@ class PageContentParser {
         hasImage: $infobox.find('img').length > 0,
       });
     });
-
-    // 提取目录
-    const $toc = $('#toc, .toc');
-    if ($toc.length > 0) {
-      const tocItems = [];
-      $toc.find('a').each((i, el) => {
-        const $link = $(el);
-        const text = $link.text().trim();
-        const href = $link.attr('href');
-        if (text && href) {
-          tocItems.push({ text, href });
-        }
-      });
-      components.toc = { items: tocItems };
-    }
 
     return components;
   }

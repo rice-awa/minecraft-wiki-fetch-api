@@ -93,6 +93,64 @@ const mockSearchSuggestionsResponse = {
     ]
 };
 
+// MediaWiki parse API 响应（整页正文）
+const mockApiParseResponse = {
+    data: {
+        parse: {
+            title: '钻石',
+            subtitle: '',
+            text: mockWikiPageHtml,
+            categories: [{ category: '材料', sortkey: '' }]
+        }
+    }
+};
+
+// MediaWiki parse API 响应（章节目录）
+const mockApiTocResponse = {
+    data: {
+        parse: {
+            title: '钻石',
+            sections: [
+                { index: '1', number: '1', level: '2', toclevel: 1, line: '获取', anchor: '获取', fromtitle: '钻石' },
+                { index: '2', number: '2', level: '2', toclevel: 1, line: '用途', anchor: '用途', fromtitle: '钻石' }
+            ]
+        }
+    }
+};
+
+// MediaWiki parse API 响应（章节 wikitext）
+const mockApiSectionWikitextResponse = {
+    data: {
+        parse: {
+            title: '钻石',
+            section: '1',
+            wikitext: '== 获取 ==\n钻石可以通过开采钻石矿石获得。'
+        }
+    }
+};
+
+// MediaWiki parse API 响应（章节正文 HTML）
+const mockApiSectionTextResponse = {
+    data: {
+        parse: {
+            title: '钻石',
+            subtitle: '',
+            text: '<div class="mw-parser-output"><h2 id="获取">获取</h2><p>钻石可以通过开采钻石矿石获得。</p></div>',
+            categories: []
+        }
+    }
+};
+
+// MediaWiki parse API 响应（整页 wikitext）
+const mockApiFullWikitextResponse = {
+    data: {
+        parse: {
+            title: '钻石',
+            wikitext: '{{Infobox}}\n钻石是游戏中最珍贵的材料之一。'
+        }
+    }
+};
+
 describe('WikiPageService Integration Tests', () => {
     let service;
     let originalHttpClient;
@@ -122,7 +180,7 @@ describe('WikiPageService Integration Tests', () => {
             // 设置模拟响应
             mockHttpClient.get
                 .mockResolvedValueOnce(mockApiExistsResponse) // 页面存在检查
-                .mockResolvedValueOnce({ data: mockWikiPageHtml }); // 页面HTML
+                .mockResolvedValueOnce(mockApiParseResponse); // 页面HTML
 
             const result = await service.getPage('钻石', { format: 'both' });
 
@@ -139,7 +197,7 @@ describe('WikiPageService Integration Tests', () => {
         test('should get page content in HTML format only', async () => {
             mockHttpClient.get
                 .mockResolvedValueOnce(mockApiExistsResponse)
-                .mockResolvedValueOnce({ data: mockWikiPageHtml });
+                .mockResolvedValueOnce(mockApiParseResponse);
 
             const result = await service.getPage('钻石', { format: 'html' });
 
@@ -152,7 +210,7 @@ describe('WikiPageService Integration Tests', () => {
         test('should get page content in Markdown format only', async () => {
             mockHttpClient.get
                 .mockResolvedValueOnce(mockApiExistsResponse)
-                .mockResolvedValueOnce({ data: mockWikiPageHtml });
+                .mockResolvedValueOnce(mockApiParseResponse);
 
             const result = await service.getPage('钻石', { format: 'markdown' });
 
@@ -182,7 +240,7 @@ describe('WikiPageService Integration Tests', () => {
             const result = await service.getPage('钻石');
 
             expect(result.success).toBe(false);
-            expect(result.error.code).toBe('HTML_FETCH_ERROR');
+            expect(result.error.code).toBe('PAGE_FETCH_ERROR');
         });
 
         test('should validate input parameters', async () => {
@@ -200,20 +258,178 @@ describe('WikiPageService Integration Tests', () => {
         test('should process page components correctly', async () => {
             mockHttpClient.get
                 .mockResolvedValueOnce(mockApiExistsResponse)
-                .mockResolvedValueOnce({ data: mockWikiPageHtml });
+                .mockResolvedValueOnce(mockApiParseResponse);
 
             const result = await service.getPage('钻石', { format: 'html' });
 
             expect(result.success).toBe(true);
-            
+
             const { components } = result.data.content;
-            expect(components.sections).toBeTruthy();
             expect(components.infoboxes).toBeTruthy();
-            expect(components.toc).toBeTruthy();
-            
+            // 章节/目录数据统一由 /toc 接口提供
+            expect(components.sections).toBeUndefined();
+            expect(components.toc).toBeUndefined();
+
             // 检查元数据统计
             expect(result.data.meta.wordCount).toBeGreaterThan(0);
-            expect(result.data.meta.sectionCount).toBeGreaterThan(0);
+            expect(result.data.meta.sectionCount).toBeUndefined();
+        });
+
+        test('should get wikitext for a specific section', async () => {
+            mockHttpClient.get
+                .mockResolvedValueOnce(mockApiExistsResponse) // 页面存在检查
+                .mockResolvedValueOnce(mockApiTocResponse) // 章节目录
+                .mockResolvedValueOnce(mockApiSectionWikitextResponse); // 章节 wikitext
+
+            const result = await service.getPage('钻石', { format: 'wikitext', title: '获取' });
+
+            expect(result.success).toBe(true);
+            expect(result.data.section).toEqual({
+                index: 1,
+                number: '1',
+                level: 2,
+                title: '获取',
+                anchor: '获取',
+                matches: 1
+            });
+            expect(result.data.content.wikitext).toContain('== 获取 ==');
+        });
+
+        test('should get html for a specific section', async () => {
+            mockHttpClient.get
+                .mockResolvedValueOnce(mockApiExistsResponse)
+                .mockResolvedValueOnce(mockApiTocResponse)
+                .mockResolvedValueOnce(mockApiSectionTextResponse);
+
+            const result = await service.getPage('钻石', { format: 'html', title: '获取' });
+
+            expect(result.success).toBe(true);
+            expect(result.data.section.title).toBe('获取');
+            expect(result.data.content.html).toContain('钻石可以通过开采钻石矿石获得');
+        });
+
+        test('should return SECTION_NOT_FOUND with available titles', async () => {
+            mockHttpClient.get
+                .mockResolvedValueOnce(mockApiExistsResponse)
+                .mockResolvedValueOnce(mockApiTocResponse);
+
+            const result = await service.getPage('钻石', { format: 'wikitext', title: '不存在的章节' });
+
+            expect(result.success).toBe(false);
+            expect(result.error.code).toBe('SECTION_NOT_FOUND');
+            expect(result.error.details.availableTitles).toEqual(['获取', '用途']);
+        });
+
+        test('should follow redirects for wikitext', async () => {
+            const redirectResponse = {
+                data: {
+                    query: {
+                        redirects: [{ from: '钻石矿', to: '钻石矿石' }],
+                        pages: {
+                            '67890': { pageid: 67890, title: '钻石矿石' }
+                        }
+                    }
+                }
+            };
+
+            mockHttpClient.get
+                .mockResolvedValueOnce(redirectResponse)
+                .mockResolvedValueOnce(mockApiFullWikitextResponse);
+
+            const result = await service.getPage('钻石矿', { format: 'wikitext' });
+
+            expect(result.success).toBe(true);
+            expect(result.data.redirect).toEqual({ from: '钻石矿', to: '钻石矿石' });
+            expect(result.data.content.wikitext).toContain('钻石');
+        });
+
+        test('should not follow redirects when followRedirect=false', async () => {
+            const redirectPageResponse = {
+                data: {
+                    query: {
+                        pages: {
+                            '999': { pageid: 999, title: '时间' }
+                        }
+                    }
+                }
+            };
+            const redirectSourceResponse = {
+                data: {
+                    parse: {
+                        title: '时间',
+                        wikitext: '#REDIRECT [[昼夜更替]]'
+                    }
+                }
+            };
+
+            mockHttpClient.get
+                .mockResolvedValueOnce(redirectPageResponse)
+                .mockResolvedValueOnce(redirectSourceResponse);
+
+            const result = await service.getPage('时间', { format: 'wikitext', followRedirect: false });
+
+            expect(result.success).toBe(true);
+            expect(result.data.redirect).toBeUndefined();
+            expect(result.data.content.wikitext).toContain('#REDIRECT');
+            expect(mockHttpClient.get.mock.calls[0][0]).toContain('redirects=0');
+        });
+    });
+
+    describe('getPageToc', () => {
+        test('should return sections', async () => {
+            mockHttpClient.get
+                .mockResolvedValueOnce(mockApiExistsResponse)
+                .mockResolvedValueOnce(mockApiTocResponse);
+
+            const result = await service.getPageToc('钻石');
+
+            expect(result.success).toBe(true);
+            expect(result.data.sectionCount).toBe(2);
+            expect(result.data.sections[0].title).toBe('获取');
+            expect(result.data.sections[0].level).toBe(2);
+        });
+
+        test('should follow redirects', async () => {
+            const redirectResponse = {
+                data: {
+                    query: {
+                        redirects: [{ from: '时间', to: '昼夜更替' }],
+                        pages: {
+                            '999': { pageid: 999, title: '昼夜更替' }
+                        }
+                    }
+                }
+            };
+            const targetTocResponse = {
+                data: {
+                    parse: {
+                        title: '昼夜更替',
+                        sections: [{ index: '1', number: '1', level: '2', toclevel: 1, line: '机制', anchor: '机制', fromtitle: '昼夜更替' }]
+                    }
+                }
+            };
+
+            mockHttpClient.get
+                .mockResolvedValueOnce(redirectResponse)
+                .mockResolvedValueOnce(targetTocResponse);
+
+            const result = await service.getPageToc('时间');
+
+            expect(result.success).toBe(true);
+            expect(result.data.pageName).toBe('昼夜更替');
+            expect(result.data.redirect).toEqual({ from: '时间', to: '昼夜更替' });
+            expect(result.data.sections).toHaveLength(1);
+        });
+
+        test('should return PAGE_NOT_FOUND for missing page', async () => {
+            mockHttpClient.get
+                .mockResolvedValueOnce(mockApiNotExistsResponse)
+                .mockResolvedValueOnce(mockSearchSuggestionsResponse);
+
+            const result = await service.getPageToc('不存在的页面');
+
+            expect(result.success).toBe(false);
+            expect(result.error.code).toBe('PAGE_NOT_FOUND');
         });
     });
 
@@ -261,6 +477,7 @@ describe('WikiPageService Integration Tests', () => {
 
             expect(result.exists).toBe(true);
             expect(result.redirected).toBe(true);
+            expect(result.redirectTarget).toBe('钻石矿石');
             expect(result.pageInfo.title).toBe('钻石矿石');
         });
     });
@@ -270,9 +487,9 @@ describe('WikiPageService Integration Tests', () => {
             // 为每个页面设置模拟响应
             mockHttpClient.get
                 .mockResolvedValueOnce(mockApiExistsResponse) // 钻石存在检查
-                .mockResolvedValueOnce({ data: mockWikiPageHtml }) // 钻石HTML
+                .mockResolvedValueOnce(mockApiParseResponse) // 钻石HTML
                 .mockResolvedValueOnce(mockApiExistsResponse) // 第二个页面存在检查
-                .mockResolvedValueOnce({ data: mockWikiPageHtml }); // 第二个页面HTML
+                .mockResolvedValueOnce(mockApiParseResponse); // 第二个页面HTML
 
             const result = await service.getPages(['钻石', '金锭'], { 
                 format: 'markdown',
@@ -290,7 +507,7 @@ describe('WikiPageService Integration Tests', () => {
         test('should handle mixed success and failure', async () => {
             mockHttpClient.get
                 .mockResolvedValueOnce(mockApiExistsResponse) // 钻石存在
-                .mockResolvedValueOnce({ data: mockWikiPageHtml }) // 钻石HTML
+                .mockResolvedValueOnce(mockApiParseResponse) // 钻石HTML
                 .mockResolvedValueOnce(mockApiNotExistsResponse) // 不存在的页面
                 .mockResolvedValueOnce(mockSearchSuggestionsResponse); // 搜索建议
 
@@ -331,7 +548,7 @@ describe('WikiPageService Integration Tests', () => {
         test('should cache and retrieve page results', async () => {
             mockHttpClient.get
                 .mockResolvedValueOnce(mockApiExistsResponse)
-                .mockResolvedValueOnce({ data: mockWikiPageHtml });
+                .mockResolvedValueOnce(mockApiParseResponse);
 
             // 第一次获取
             const result1 = await service.getPage('钻石');
@@ -347,9 +564,9 @@ describe('WikiPageService Integration Tests', () => {
         test('should respect cache TTL', async () => {
             mockHttpClient.get
                 .mockResolvedValueOnce(mockApiExistsResponse)
-                .mockResolvedValueOnce({ data: mockWikiPageHtml })
+                .mockResolvedValueOnce(mockApiParseResponse)
                 .mockResolvedValueOnce(mockApiExistsResponse)
-                .mockResolvedValueOnce({ data: mockWikiPageHtml });
+                .mockResolvedValueOnce(mockApiParseResponse);
 
             // 第一次获取
             await service.getPage('钻石');
@@ -367,11 +584,11 @@ describe('WikiPageService Integration Tests', () => {
             // 添加两个页面到缓存（达到maxSize）
             mockHttpClient.get
                 .mockResolvedValueOnce(mockApiExistsResponse)
-                .mockResolvedValueOnce({ data: mockWikiPageHtml })
+                .mockResolvedValueOnce(mockApiParseResponse)
                 .mockResolvedValueOnce(mockApiExistsResponse)
-                .mockResolvedValueOnce({ data: mockWikiPageHtml })
+                .mockResolvedValueOnce(mockApiParseResponse)
                 .mockResolvedValueOnce(mockApiExistsResponse)
-                .mockResolvedValueOnce({ data: mockWikiPageHtml });
+                .mockResolvedValueOnce(mockApiParseResponse);
 
             await service.getPage('钻石');
             await service.getPage('金锭');
@@ -389,7 +606,7 @@ describe('WikiPageService Integration Tests', () => {
         test('should clear cache correctly', async () => {
             mockHttpClient.get
                 .mockResolvedValueOnce(mockApiExistsResponse)
-                .mockResolvedValueOnce({ data: mockWikiPageHtml });
+                .mockResolvedValueOnce(mockApiParseResponse);
 
             await service.getPage('钻石');
             
@@ -405,7 +622,7 @@ describe('WikiPageService Integration Tests', () => {
         test('should return deep clone from cache to prevent mutation', async () => {
             mockHttpClient.get
                 .mockResolvedValueOnce(mockApiExistsResponse)
-                .mockResolvedValueOnce({ data: mockWikiPageHtml });
+                .mockResolvedValueOnce(mockApiParseResponse);
 
             const result1 = await service.getPage('钻石', { format: 'html' });
             expect(result1.success).toBe(true);
@@ -458,7 +675,7 @@ describe('WikiPageService Integration Tests', () => {
 
             mockHttpClient.get
                 .mockResolvedValueOnce(mockApiExistsResponse)
-                .mockResolvedValueOnce({ data: mockWikiPageHtml });
+                .mockResolvedValueOnce(mockApiParseResponse);
 
             const result = await service.getPage('钻石');
 
