@@ -13,7 +13,7 @@ MCP_PORT = int(os.getenv("MCP_PORT", "3001"))
 mcp = MCPServer("Minecraft Wiki")
 
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def search_wiki(
     q: Annotated[str, Field(description="搜索关键词，1-3个游戏名词为佳。多关键词会缩小而非扩大范围，因为所有词都需出现在结果页面中。如需多角度搜索，分别调用本工具即可。这不是搜索引擎，不要堆砌关键词。例：'信标 激活'，而不是 '信标 激活 怎么做 教程 步骤'")],
     limit: Annotated[int, Field(description="返回结果数量，默认 10，最大 50")] = 10,
@@ -50,7 +50,7 @@ async def search_wiki(
     return "\n".join(lines)
 
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def get_page(
     pageName: Annotated[str, Field(description="页面名称，支持中文。例如 '钻石'、'工作台'、'命令'")],
     format: Annotated[
@@ -115,7 +115,7 @@ description="**非必要不要传此参数，默认 wikitext 就是最好的。*
     return "\n".join(info_lines)
 
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def check_page_exists(
     pageName: Annotated[str, Field(description="页面名称，支持中文")],
 ) -> str:
@@ -146,7 +146,7 @@ async def check_page_exists(
         return f"页面 '{pageName}' 不存在。"
 
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def check_health() -> str:
     """检查 Wiki API 服务健康状态。"""
     try:
@@ -170,7 +170,7 @@ async def check_health() -> str:
     return "\n".join(lines)
 
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def list_namespaces() -> str:
     """获取 Minecraft Wiki 的命名空间映射表。
 
